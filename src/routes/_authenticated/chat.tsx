@@ -393,15 +393,20 @@ function ChatPage() {
             </div>
             {g.items.map((m) => {
               const mine = m.sender_id === userId;
+              const parent = m.reply_to_id ? messagesById[m.reply_to_id] : undefined;
+              const parentAuthor = parent ? profiles[parent.sender_id] : undefined;
               return (
                 <MessageBubble
                   key={m.id}
                   mine={mine}
                   m={m}
+                  parent={parent}
+                  parentAuthor={parentAuthor?.display_name}
                   signedUrls={signedUrls}
                   onOpenImage={setPreviewOpen}
                   onDelete={() => deleteMessage(m.id)}
                   onCopy={() => m.body && copyText(m.body)}
+                  onReply={() => { setReplyTo(m); textareaRef.current?.focus(); }}
                 />
               );
             })}
