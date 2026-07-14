@@ -210,8 +210,8 @@ function ChatPage() {
 
   async function handleFiles(files: FileList | null) {
     if (!files) return;
-    const arr = Array.from(files).slice(0, 10 - pendingImages.length);
-    setPendingImages((prev) => [...prev, ...arr].slice(0, 10));
+    const arr = Array.from(files);
+    setPendingImages((prev) => [...prev, ...arr]);
   }
 
   async function uploadImages(files: File[]): Promise<string[]> {
