@@ -457,6 +457,29 @@ function ChatPage() {
         </div>
       )}
 
+      {/* Reply banner */}
+      {replyTo && (
+        <div className="glass flex items-center gap-2 border-t border-white/10 px-3 py-2 animate-fade-in">
+          <div className="h-10 w-1 shrink-0 rounded-full bg-[oklch(0.75_0.2_200)]" />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[11px] font-semibold text-[oklch(0.85_0.15_200)]">
+              Replying to {profiles[replyTo.sender_id]?.display_name ?? "message"}
+            </div>
+            <div className="truncate text-xs text-white/70">
+              {replyTo.body || (replyTo.image_urls?.length ? "📷 Photo" : "")}
+            </div>
+          </div>
+          <button
+            type="button"
+            aria-label="Cancel reply"
+            onClick={() => setReplyTo(null)}
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white/70 hover:bg-white/10"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+      )}
+
       {/* Composer */}
       <div className="glass sticky bottom-0 z-20 flex items-end gap-2 border-t border-white/10 px-3 py-3">
         {/* Desktop-only emoji button */}
