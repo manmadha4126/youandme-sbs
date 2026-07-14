@@ -27,12 +27,17 @@ function Landing() {
   }
 
   return (
-    <main className="relative flex min-h-[100dvh] w-full items-center justify-center overflow-hidden px-6">
+    <main
+      className="relative flex min-h-[100dvh] w-full items-center justify-center overflow-hidden px-6"
+      style={{
+        background: "linear-gradient(180deg, #4facfe 0%, #00f2fe 30%, #ff9a9e 70%, #fecfef 100%)",
+      }}
+    >
       {/* Floating glow orbs */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-32 -left-24 h-96 w-96 rounded-full bg-[oklch(0.55_0.24_340)] opacity-40 blur-3xl animate-float-slow" />
-        <div className="absolute top-1/2 -right-32 h-[28rem] w-[28rem] rounded-full bg-[oklch(0.45_0.22_300)] opacity-45 blur-3xl animate-float-slower" />
-        <div className="absolute -bottom-40 left-1/3 h-96 w-96 rounded-full bg-[oklch(0.65_0.22_15)] opacity-35 blur-3xl animate-float-slow" />
+        <div className="absolute -top-32 -left-24 h-96 w-96 rounded-full bg-[oklch(0.65_0.20_250)] opacity-40 blur-3xl animate-float-slow" />
+        <div className="absolute top-1/2 -right-32 h-[28rem] w-[28rem] rounded-full bg-[oklch(0.60_0.22_340)] opacity-45 blur-3xl animate-float-slower" />
+        <div className="absolute -bottom-40 left-1/3 h-96 w-96 rounded-full bg-[oklch(0.70_0.20_15)] opacity-35 blur-3xl animate-float-slow" />
         {/* Particles */}
         {Array.from({ length: 18 }).map((_, i) => (
           <span
@@ -51,7 +56,7 @@ function Landing() {
       <div className="relative z-10 flex flex-col items-center gap-10 text-center animate-fade-up">
         <div className="space-y-3">
           <p className="text-xs uppercase tracking-[0.4em] text-white/60 animate-fade-in">a private space for two</p>
-          <h1 className="font-kameron text-6xl font-bold text-gradient sm:text-7xl">youandme</h1>
+          <h1 className="font-kameron text-6xl font-bold text-white drop-shadow-lg sm:text-7xl">YouAndMe</h1>
         </div>
 
         <button
