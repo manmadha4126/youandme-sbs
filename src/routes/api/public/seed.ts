@@ -4,7 +4,6 @@ const USERS = [
   { username: "manmadha", display_name: "Manmadha" },
   { username: "likhitha", display_name: "Likhitha" },
 ];
-const DEFAULT_PASSWORD = "loveyou";
 
 export const Route = createFileRoute("/api/public/seed")({
   server: {
@@ -13,15 +12,16 @@ export const Route = createFileRoute("/api/public/seed")({
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         const created: string[] = [];
+        const { data: list } = await supabaseAdmin.auth.admin.listUsers();
         for (const u of USERS) {
           const email = `${u.username}@youandme.app`;
-          const { data: list } = await supabaseAdmin.auth.admin.listUsers();
+          const password = u.username; // password matches the username
           const existing = list?.users.find((x) => x.email === email);
           let userId = existing?.id;
           if (!existing) {
             const { data, error } = await supabaseAdmin.auth.admin.createUser({
               email,
-              password: DEFAULT_PASSWORD,
+              password,
               email_confirm: true,
               user_metadata: { username: u.username, display_name: u.display_name },
             });
@@ -30,6 +30,9 @@ export const Route = createFileRoute("/api/public/seed")({
             }
             userId = data.user?.id;
             created.push(u.username);
+          } else {
+            // Idempotently ensure the password matches the username
+            await supabaseAdmin.auth.admin.updateUserById(existing.id, { password });
           }
           if (userId) {
             await supabaseAdmin.from("profiles").upsert(
