@@ -73,10 +73,10 @@ function AuthPage() {
             <span className="text-black">And</span>
             <span className="text-white">Me</span>
           </h1>
-          <p className="mt-2 text-sm text-white/80">Sign in to continue</p>
+          <p className="mt-2 text-base font-extrabold text-white drop-shadow">Sign in to continue</p>
         </div>
 
-        <label className="mb-2 block text-xs uppercase tracking-widest text-white/80">Who are you</label>
+        <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-black">Who are you</label>
         <div className="mb-5 grid grid-cols-2 gap-2">
           {USERS.map((u) => (
             <button
