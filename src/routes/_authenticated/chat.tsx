@@ -299,10 +299,11 @@ function ChatPage() {
 
   return (
     <div
-      className="relative flex h-[100dvh] flex-col overflow-hidden"
+      className="relative flex flex-col overflow-hidden"
       style={{
+        height: "100dvh",
         paddingTop: "env(safe-area-inset-top)",
-        paddingBottom: "env(safe-area-inset-bottom)",
+        paddingBottom: `calc(env(safe-area-inset-bottom) + ${kbInset}px)`,
         background: "linear-gradient(120deg, #0d5c63 0%, #114b5f 25%, #1a2d5c 55%, #3d1f6b 85%, #5a2a8c 100%)",
       }}
     >
