@@ -1,0 +1,572 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { format, isToday, isYesterday } from "date-fns";
+
+export const Route = createFileRoute("/_authenticated/chat")({
+  component: ChatPage,
+});
+
+type Message = {
+  id: string;
+  sender_id: string;
+  body: string | null;
+  image_urls: string[];
+  created_at: string;
+  read_at: string | null;
+};
+
+type Profile = { id: string; username: string; display_name: string };
+
+const EMOJIS = ["❤️", "😂", "😍", "😘", "🥰", "😊", "😭", "🔥", "✨", "🌸", "💜", "💕", "😉", "😴", "🙈", "🌙", "☀️", "🎀"];
+
+function formatTime(d: string) {
+  const date = new Date(d);
+  return format(date, "h:mm a");
+}
+function formatDay(d: string) {
+  const date = new Date(d);
+  if (isToday(date)) return "Today";
+  if (isYesterday(date)) return "Yesterday";
+  return format(date, "EEEE, MMM d");
+}
+
+function ChatPage() {
+  const navigate = useNavigate();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [profiles, setProfiles] = useState<Record<string, Profile>>({});
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [text, setText] = useState("");
+  const [pendingImages, setPendingImages] = useState<File[]>([]);
+  const [previewOpen, setPreviewOpen] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [otherTyping, setOtherTyping] = useState(false);
+  const [otherOnline, setOtherOnline] = useState(false);
+  const [showEmojis, setShowEmojis] = useState(false);
+  const [search, setSearch] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Bootstrap: user, profiles, messages
+  useEffect(() => {
+    (async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
+      if (!uid) { navigate({ to: "/auth" }); return; }
+      setUserId(uid);
+
+      const { data: profs } = await supabase.from("profiles").select("*");
+      if (profs) {
+        const map: Record<string, Profile> = {};
+        profs.forEach((p) => { map[p.id] = p as Profile; });
+        setProfiles(map);
+      }
+
+      const { data: msgs } = await supabase
+        .from("messages")
+        .select("*")
+        .order("created_at", { ascending: true });
+      if (msgs) setMessages(msgs as Message[]);
+    })();
+  }, [navigate]);
+
+  // Realtime subscriptions
+  useEffect(() => {
+    if (!userId) return;
+
+    const msgChannel = supabase
+      .channel("messages-live")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        setMessages((prev) => {
+          const next = payload.new as Message;
+          if (prev.some((m) => m.id === next.id)) return prev;
+          return [...prev, next];
+        });
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
+        const next = payload.new as Message;
+        setMessages((prev) => prev.map((m) => (m.id === next.id ? next : m)));
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages" }, (payload) => {
+        const oldRow = payload.old as { id: string };
+        setMessages((prev) => prev.filter((m) => m.id !== oldRow.id));
+      })
+      .subscribe();
+
+    const typingChannel = supabase
+      .channel("typing-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "typing_status" }, (payload) => {
+        const row = payload.new as { user_id: string; is_typing: boolean };
+        if (row && row.user_id !== userId) setOtherTyping(row.is_typing);
+      })
+      .subscribe();
+
+    const presenceChannel = supabase
+      .channel("presence-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "presence" }, (payload) => {
+        const row = payload.new as { user_id: string; last_seen: string };
+        if (row && row.user_id !== userId) {
+          const diff = Date.now() - new Date(row.last_seen).getTime();
+          setOtherOnline(diff < 60_000);
+        }
+      })
+      .subscribe();
+
+    // Initial presence + typing status
+    supabase.from("presence").select("*").then(({ data }) => {
+      const other = data?.find((p) => p.user_id !== userId);
+      if (other) setOtherOnline(Date.now() - new Date(other.last_seen).getTime() < 60_000);
+    });
+    supabase.from("typing_status").select("*").then(({ data }) => {
+      const other = data?.find((t) => t.user_id !== userId);
+      if (other) setOtherTyping(other.is_typing);
+    });
+
+    // Heartbeat my presence every 20s
+    const beat = async () => {
+      await supabase.from("presence").upsert({ user_id: userId, last_seen: new Date().toISOString() });
+    };
+    beat();
+    const interval = setInterval(beat, 20_000);
+    const onVisible = () => beat();
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      supabase.removeChannel(msgChannel);
+      supabase.removeChannel(typingChannel);
+      supabase.removeChannel(presenceChannel);
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [userId]);
+
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length, otherTyping]);
+
+  // Mark received messages as read
+  useEffect(() => {
+    if (!userId) return;
+    const unread = messages.filter((m) => m.sender_id !== userId && !m.read_at);
+    if (unread.length === 0) return;
+    supabase
+      .from("messages")
+      .update({ read_at: new Date().toISOString() })
+      .in("id", unread.map((m) => m.id))
+      .then(() => {});
+  }, [messages, userId]);
+
+  // Sign URLs for images (private bucket)
+  useEffect(() => {
+    const paths = new Set<string>();
+    messages.forEach((m) => m.image_urls?.forEach((p) => { if (p && !signedUrls[p]) paths.add(p); }));
+    if (paths.size === 0) return;
+    (async () => {
+      const arr = Array.from(paths);
+      const { data } = await supabase.storage.from("chat-images").createSignedUrls(arr, 60 * 60 * 24);
+      if (data) {
+        const next: Record<string, string> = {};
+        data.forEach((r, i) => { if (r.signedUrl) next[arr[i]] = r.signedUrl; });
+        setSignedUrls((prev) => ({ ...prev, ...next }));
+      }
+    })();
+  }, [messages, signedUrls]);
+
+  const filteredMessages = useMemo(() => {
+    if (!search.trim()) return messages;
+    const q = search.toLowerCase();
+    return messages.filter((m) => (m.body || "").toLowerCase().includes(q));
+  }, [messages, search]);
+
+  const grouped = useMemo(() => {
+    const groups: { day: string; items: Message[] }[] = [];
+    filteredMessages.forEach((m) => {
+      const day = formatDay(m.created_at);
+      const last = groups[groups.length - 1];
+      if (last && last.day === day) last.items.push(m);
+      else groups.push({ day, items: [m] });
+    });
+    return groups;
+  }, [filteredMessages]);
+
+  const setTyping = useCallback((val: boolean) => {
+    if (!userId) return;
+    supabase.from("typing_status").upsert({ user_id: userId, is_typing: val, updated_at: new Date().toISOString() });
+  }, [userId]);
+
+  function onTextChange(v: string) {
+    setText(v);
+    setTyping(true);
+    if (typingTimer.current) clearTimeout(typingTimer.current);
+    typingTimer.current = setTimeout(() => setTyping(false), 1200);
+  }
+
+  async function handleFiles(files: FileList | null) {
+    if (!files) return;
+    const arr = Array.from(files).slice(0, 10 - pendingImages.length);
+    setPendingImages((prev) => [...prev, ...arr].slice(0, 10));
+  }
+
+  async function uploadImages(files: File[]): Promise<string[]> {
+    if (!userId || files.length === 0) return [];
+    const paths: string[] = [];
+    for (const file of files) {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error } = await supabase.storage.from("chat-images").upload(path, file, {
+        cacheControl: "31536000",
+        contentType: file.type,
+      });
+      if (!error) paths.push(path);
+    }
+    return paths;
+  }
+
+  async function sendMessage() {
+    if (!userId) return;
+    const body = text.trim();
+    if (!body && pendingImages.length === 0) return;
+    setUploading(true);
+    setTyping(false);
+    const imgs = pendingImages.length ? await uploadImages(pendingImages) : [];
+    const { error } = await supabase.from("messages").insert({
+      sender_id: userId,
+      body: body || null,
+      image_urls: imgs,
+    });
+    if (!error) {
+      setText("");
+      setPendingImages([]);
+    }
+    setUploading(false);
+  }
+
+  async function deleteMessage(id: string) {
+    await supabase.from("messages").delete().eq("id", id);
+  }
+
+  async function copyText(t: string) {
+    try { await navigator.clipboard.writeText(t); } catch {}
+  }
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    navigate({ to: "/", replace: true });
+  }
+
+  const otherProfile = useMemo(() => {
+    return Object.values(profiles).find((p) => p.id !== userId);
+  }, [profiles, userId]);
+
+  return (
+    <div className="relative flex h-[100dvh] flex-col overflow-hidden" style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}>
+      {/* Ambient glow */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-[oklch(0.5_0.24_340)] opacity-25 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[oklch(0.4_0.22_300)] opacity-30 blur-3xl" />
+      </div>
+
+      {/* Header */}
+      <header className="glass sticky top-0 z-20 flex items-center gap-3 px-4 py-3 border-b border-white/10">
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-lg font-semibold shadow-[var(--shadow-glow)]" style={{ backgroundImage: "var(--gradient-bubble)" }}>
+          {otherProfile?.display_name?.[0] ?? "•"}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-display text-lg font-semibold leading-tight text-gradient">youandme</div>
+          <div className="flex items-center gap-1.5 text-[11px] text-white/60">
+            <span className={`h-2 w-2 rounded-full ${otherOnline ? "bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400/70" : "bg-white/30"}`} />
+            <span>{otherOnline ? (otherTyping ? "typing…" : "online") : "offline"}</span>
+            {otherProfile && <span className="ml-1 truncate text-white/40">· with {otherProfile.display_name}</span>}
+          </div>
+        </div>
+        <button aria-label="Search" onClick={() => setShowSearch((v) => !v)} className="grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/80 hover:bg-white/10">
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
+        </button>
+        <button aria-label="Sign out" onClick={signOut} className="grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/80 hover:bg-white/10">
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" x2="9" y1="12" y2="12" /></svg>
+        </button>
+      </header>
+
+      {showSearch && (
+        <div className="glass border-b border-white/10 px-4 py-2 animate-fade-in">
+          <input
+            autoFocus
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search messages…"
+            className="w-full rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white placeholder-white/40 outline-none focus:border-white/30"
+          />
+        </div>
+      )}
+
+      {/* Messages */}
+      <div
+        ref={scrollRef}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); }}
+        className="flex-1 space-y-4 overflow-y-auto px-3 py-4 sm:px-6"
+      >
+        {grouped.length === 0 && (
+          <div className="mt-20 text-center text-sm text-white/50">
+            <p className="font-display text-2xl text-gradient">say hi 💜</p>
+            <p className="mt-2">Your conversation starts here.</p>
+          </div>
+        )}
+
+        {grouped.map((g) => (
+          <div key={g.day} className="space-y-2">
+            <div className="my-4 flex items-center justify-center">
+              <span className="glass rounded-full px-3 py-1 text-[11px] uppercase tracking-widest text-white/60">{g.day}</span>
+            </div>
+            {g.items.map((m) => {
+              const mine = m.sender_id === userId;
+              return (
+                <MessageBubble
+                  key={m.id}
+                  mine={mine}
+                  m={m}
+                  signedUrls={signedUrls}
+                  onOpenImage={setPreviewOpen}
+                  onDelete={() => deleteMessage(m.id)}
+                  onCopy={() => m.body && copyText(m.body)}
+                />
+              );
+            })}
+          </div>
+        ))}
+
+        {otherTyping && (
+          <div className="flex justify-start">
+            <div className="glass flex items-center gap-1 rounded-full px-4 py-2.5">
+              {[0, 1, 2].map((i) => (
+                <span key={i} className="inline-block h-1.5 w-1.5 rounded-full bg-white/70" style={{ animation: `typing-bounce 1.2s ${i * 0.15}s infinite` }} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Pending images preview */}
+      {pendingImages.length > 0 && (
+        <div className="glass flex gap-2 overflow-x-auto border-t border-white/10 px-3 py-2">
+          {pendingImages.map((f, i) => {
+            const url = URL.createObjectURL(f);
+            return (
+              <div key={i} className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-white/20">
+                <img src={url} alt="" className="h-full w-full object-cover" />
+                <button
+                  onClick={() => setPendingImages((prev) => prev.filter((_, x) => x !== i))}
+                  className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/70 text-xs text-white"
+                  aria-label="Remove"
+                >×</button>
+              </div>
+            );
+          })}
+          <p className="self-center px-2 text-xs text-white/50">{pendingImages.length}/10</p>
+        </div>
+      )}
+
+      {/* Emoji row */}
+      {showEmojis && (
+        <div className="glass grid grid-cols-9 gap-1 border-t border-white/10 px-3 py-2 animate-fade-in">
+          {EMOJIS.map((e) => (
+            <button key={e} onClick={() => setText((t) => t + e)} className="text-xl hover:scale-125 transition-transform">
+              {e}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Composer */}
+      <div className="glass sticky bottom-0 z-20 flex items-end gap-2 border-t border-white/10 px-3 py-3">
+        <button
+          aria-label="Emoji"
+          onClick={() => setShowEmojis((v) => !v)}
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/5 text-xl hover:bg-white/10"
+        >😊</button>
+        <button
+          aria-label="Attach"
+          onClick={() => fileInputRef.current?.click()}
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/5 hover:bg-white/10"
+        >
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 17.98 8.83l-8.58 8.57a2 2 0 1 1-2.83-2.83l8.49-8.49" />
+          </svg>
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
+        />
+        <textarea
+          value={text}
+          onChange={(e) => onTextChange(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+          rows={1}
+          placeholder="Message"
+          className="max-h-32 min-h-11 flex-1 resize-none rounded-3xl border border-white/15 bg-white/5 px-4 py-3 text-[15px] text-white placeholder-white/40 outline-none focus:border-white/30 focus:bg-white/10"
+        />
+        <button
+          onClick={sendMessage}
+          disabled={uploading || (!text.trim() && pendingImages.length === 0)}
+          aria-label="Send"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-white shadow-[var(--shadow-glow)] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+          style={{ backgroundImage: "var(--gradient-bubble)" }}
+        >
+          {uploading ? (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/50 border-t-white" />
+          ) : (
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
+          )}
+        </button>
+      </div>
+
+      {/* Full-screen image viewer */}
+      {previewOpen && (
+        <ImageViewer url={signedUrls[previewOpen] || previewOpen} onClose={() => setPreviewOpen(null)} />
+      )}
+    </div>
+  );
+}
+
+function MessageBubble({
+  mine,
+  m,
+  signedUrls,
+  onOpenImage,
+  onDelete,
+  onCopy,
+}: {
+  mine: boolean;
+  m: Message;
+  signedUrls: Record<string, string>;
+  onOpenImage: (path: string) => void;
+  onDelete: () => void;
+  onCopy: () => void;
+}) {
+  const [menu, setMenu] = useState(false);
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function startPress() {
+    pressTimer.current = setTimeout(() => setMenu(true), 500);
+  }
+  function endPress() {
+    if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null; }
+  }
+
+  const imgs = m.image_urls || [];
+  const gridCols = imgs.length === 1 ? "grid-cols-1" : imgs.length === 2 ? "grid-cols-2" : imgs.length <= 4 ? "grid-cols-2" : "grid-cols-3";
+
+  return (
+    <div className={`flex ${mine ? "justify-end" : "justify-start"} animate-bubble-in`}>
+      <div
+        onContextMenu={(e) => { e.preventDefault(); setMenu(true); }}
+        onTouchStart={startPress}
+        onTouchEnd={endPress}
+        onTouchMove={endPress}
+        className="relative max-w-[82%] sm:max-w-[70%]"
+      >
+        <div
+          className={`overflow-hidden rounded-3xl px-1 py-1 shadow-[var(--shadow-soft)] ${
+            mine ? "rounded-br-lg text-[oklch(0.15_0.06_320)]" : "rounded-bl-lg text-white glass"
+          }`}
+          style={mine ? { backgroundImage: "var(--gradient-bubble)", color: "white" } : undefined}
+        >
+          {imgs.length > 0 && (
+            <div className={`grid gap-1 p-1 ${gridCols}`}>
+              {imgs.map((path) => {
+                const url = signedUrls[path];
+                return (
+                  <button
+                    key={path}
+                    onClick={() => onOpenImage(path)}
+                    className="group relative overflow-hidden rounded-2xl"
+                  >
+                    {url ? (
+                      <img
+                        src={url}
+                        loading="lazy"
+                        alt=""
+                        className="h-40 w-full object-cover transition-transform group-hover:scale-105 sm:h-52"
+                      />
+                    ) : (
+                      <div className="grid h-40 w-full place-items-center bg-white/10 text-xs text-white/60 sm:h-52">Loading…</div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {m.body && (
+            <p className={`whitespace-pre-wrap break-words px-4 py-2 text-[15px] leading-snug ${imgs.length > 0 ? "pt-2" : ""}`}>
+              {m.body}
+            </p>
+          )}
+          <div className={`flex items-center justify-end gap-1 px-3 pb-2 pt-0.5 text-[10px] ${mine ? "text-white/80" : "text-white/50"}`}>
+            <span>{formatTime(m.created_at)}</span>
+            {mine && (
+              <span aria-label={m.read_at ? "Read" : "Delivered"}>
+                {m.read_at ? (
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="#7dd3fc" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m4 12 4 4 8-10" /><path d="m10 16 8-10" /></svg>
+                ) : (
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m4 12 4 4 8-10" /></svg>
+                )}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {menu && (
+          <>
+            <div className="fixed inset-0 z-30" onClick={() => setMenu(false)} />
+            <div className={`glass absolute z-40 flex flex-col overflow-hidden rounded-2xl border border-white/10 text-sm shadow-[var(--shadow-soft)] ${mine ? "right-0" : "left-0"} top-full mt-2 min-w-[160px]`}>
+              {m.body && (
+                <button className="px-4 py-2.5 text-left text-white/90 hover:bg-white/10" onClick={() => { onCopy(); setMenu(false); }}>Copy</button>
+              )}
+              {mine && (
+                <button className="px-4 py-2.5 text-left text-[oklch(0.75_0.2_25)] hover:bg-white/10" onClick={() => { onDelete(); setMenu(false); }}>Delete</button>
+              )}
+              <button className="px-4 py-2.5 text-left text-white/60 hover:bg-white/10" onClick={() => setMenu(false)}>Cancel</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ImageViewer({ url, onClose }: { url: string; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl animate-fade-in" onClick={onClose}>
+      <button aria-label="Close" onClick={onClose} className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20" style={{ marginTop: "env(safe-area-inset-top)" }}>
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+      </button>
+      <a
+        href={url}
+        download
+        onClick={(e) => e.stopPropagation()}
+        className="absolute right-4 top-20 grid h-11 w-11 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
+        aria-label="Download"
+      >
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
+      </a>
+      <img
+        src={url}
+        alt=""
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[92vh] max-w-[96vw] touch-manipulation select-none rounded-2xl object-contain"
+        style={{ touchAction: "pinch-zoom" }}
+      />
+    </div>
+  );
+}
