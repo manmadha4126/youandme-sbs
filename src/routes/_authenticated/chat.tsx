@@ -544,6 +544,7 @@ function ChatPage() {
         {/* Textarea + mobile inline icons */}
         <div className="relative flex-1">
           <textarea
+            ref={textareaRef}
             value={text}
             onChange={(e) => onTextChange(e.target.value)}
             onFocus={() => { setShowEmojis(false); setShowAttach(false); }}
