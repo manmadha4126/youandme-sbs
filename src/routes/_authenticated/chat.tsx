@@ -15,6 +15,7 @@ type Message = {
   image_urls: string[];
   created_at: string;
   read_at: string | null;
+  reply_to_id: string | null;
 };
 
 type Profile = { id: string; username: string; display_name: string };
