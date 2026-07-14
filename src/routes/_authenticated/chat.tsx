@@ -15,6 +15,7 @@ type Message = {
   image_urls: string[];
   created_at: string;
   read_at: string | null;
+  reply_to_id: string | null;
 };
 
 type Profile = { id: string; username: string; display_name: string };
@@ -48,10 +49,13 @@ function ChatPage() {
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [kbInset, setKbInset] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Bootstrap: user, profiles, messages
@@ -152,6 +156,25 @@ function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, otherTyping]);
 
+  // Track mobile keyboard: shrink chat area by the visual-viewport delta so composer stays visible.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => {
+      const delta = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setKbInset(delta);
+      // Keep the latest message pinned when keyboard opens
+      requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ block: "end" }));
+    };
+    vv.addEventListener("resize", onResize);
+    vv.addEventListener("scroll", onResize);
+    onResize();
+    return () => {
+      vv.removeEventListener("resize", onResize);
+      vv.removeEventListener("scroll", onResize);
+    };
+  }, []);
+
   // Mark received messages as read
   useEffect(() => {
     if (!userId) return;
@@ -179,6 +202,12 @@ function ChatPage() {
       }
     })();
   }, [messages, signedUrls]);
+
+  const messagesById = useMemo(() => {
+    const map: Record<string, Message> = {};
+    messages.forEach((m) => { map[m.id] = m; });
+    return map;
+  }, [messages]);
 
   const filteredMessages = useMemo(() => {
     if (!search.trim()) return messages;
@@ -241,10 +270,12 @@ function ChatPage() {
       sender_id: userId,
       body: body || null,
       image_urls: imgs,
+      reply_to_id: replyTo?.id ?? null,
     });
     if (!error) {
       setText("");
       setPendingImages([]);
+      setReplyTo(null);
     }
     setUploading(false);
   }
@@ -268,10 +299,11 @@ function ChatPage() {
 
   return (
     <div
-      className="relative flex h-[100dvh] flex-col overflow-hidden"
+      className="relative flex flex-col overflow-hidden"
       style={{
+        height: "100dvh",
         paddingTop: "env(safe-area-inset-top)",
-        paddingBottom: "env(safe-area-inset-bottom)",
+        paddingBottom: `calc(env(safe-area-inset-bottom) + ${kbInset}px)`,
         background: "linear-gradient(120deg, #0d5c63 0%, #114b5f 25%, #1a2d5c 55%, #3d1f6b 85%, #5a2a8c 100%)",
       }}
     >
@@ -361,15 +393,20 @@ function ChatPage() {
             </div>
             {g.items.map((m) => {
               const mine = m.sender_id === userId;
+              const parent = m.reply_to_id ? messagesById[m.reply_to_id] : undefined;
+              const parentAuthor = parent ? profiles[parent.sender_id] : undefined;
               return (
                 <MessageBubble
                   key={m.id}
                   mine={mine}
                   m={m}
+                  parent={parent}
+                  parentAuthor={parentAuthor?.display_name}
                   signedUrls={signedUrls}
                   onOpenImage={setPreviewOpen}
                   onDelete={() => deleteMessage(m.id)}
                   onCopy={() => m.body && copyText(m.body)}
+                  onReply={() => { setReplyTo(m); textareaRef.current?.focus(); }}
                 />
               );
             })}
@@ -417,6 +454,29 @@ function ChatPage() {
               {e}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Reply banner */}
+      {replyTo && (
+        <div className="glass flex items-center gap-2 border-t border-white/10 px-3 py-2 animate-fade-in">
+          <div className="h-10 w-1 shrink-0 rounded-full bg-[oklch(0.75_0.2_200)]" />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[11px] font-semibold text-[oklch(0.85_0.15_200)]">
+              Replying to {profiles[replyTo.sender_id]?.display_name ?? "message"}
+            </div>
+            <div className="truncate text-xs text-white/70">
+              {replyTo.body || (replyTo.image_urls?.length ? "📷 Photo" : "")}
+            </div>
+          </div>
+          <button
+            type="button"
+            aria-label="Cancel reply"
+            onClick={() => setReplyTo(null)}
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white/70 hover:bg-white/10"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+          </button>
         </div>
       )}
 
@@ -484,6 +544,7 @@ function ChatPage() {
         {/* Textarea + mobile inline icons */}
         <div className="relative flex-1">
           <textarea
+            ref={textareaRef}
             value={text}
             onChange={(e) => onTextChange(e.target.value)}
             onFocus={() => { setShowEmojis(false); setShowAttach(false); }}
@@ -564,20 +625,31 @@ function ChatPage() {
 function MessageBubble({
   mine,
   m,
+  parent,
+  parentAuthor,
   signedUrls,
   onOpenImage,
   onDelete,
   onCopy,
+  onReply,
 }: {
   mine: boolean;
   m: Message;
+  parent?: Message;
+  parentAuthor?: string;
   signedUrls: Record<string, string>;
   onOpenImage: (path: string) => void;
   onDelete: () => void;
   onCopy: () => void;
+  onReply: () => void;
 }) {
   const [menu, setMenu] = useState(false);
+  const [dragX, setDragX] = useState(0);
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startX = useRef<number | null>(null);
+  const startY = useRef<number | null>(null);
+  const swiping = useRef(false);
+  const REPLY_THRESHOLD = 60;
 
   function startPress() {
     pressTimer.current = setTimeout(() => setMenu(true), 500);
@@ -586,18 +658,81 @@ function MessageBubble({
     if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null; }
   }
 
+  function onTouchStart(e: React.TouchEvent) {
+    const t = e.touches[0];
+    startX.current = t.clientX;
+    startY.current = t.clientY;
+    swiping.current = false;
+    startPress();
+  }
+  function onTouchMove(e: React.TouchEvent) {
+    if (startX.current == null || startY.current == null) return;
+    const t = e.touches[0];
+    const dx = t.clientX - startX.current;
+    const dy = t.clientY - startY.current;
+    if (!swiping.current) {
+      if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+        swiping.current = true;
+        endPress();
+      } else if (Math.abs(dy) > 8) {
+        endPress();
+        return;
+      } else {
+        return;
+      }
+    }
+    // Received messages swipe right; sent messages swipe left
+    const clamped = mine ? Math.min(0, Math.max(-100, dx)) : Math.max(0, Math.min(100, dx));
+    setDragX(clamped);
+  }
+  function onTouchEnd() {
+    endPress();
+    if (swiping.current && Math.abs(dragX) >= REPLY_THRESHOLD) {
+      onReply();
+    }
+    setDragX(0);
+    startX.current = null;
+    startY.current = null;
+    swiping.current = false;
+  }
+
   const imgs = m.image_urls || [];
   const gridCols = imgs.length === 1 ? "grid-cols-1" : imgs.length === 2 ? "grid-cols-2" : imgs.length <= 4 ? "grid-cols-2" : "grid-cols-3";
+  const reactionShown = Math.abs(dragX) >= 24;
+
+  // Delivery status: any server-persisted message is "delivered"; blue when read_at set.
+  const status: "delivered" | "read" = m.read_at ? "read" : "delivered";
 
   return (
-    <div className={`flex ${mine ? "justify-end" : "justify-start"} animate-bubble-in`}>
+    <div className={`flex ${mine ? "justify-end" : "justify-start"} animate-bubble-in relative`}>
+      {/* Reply hint icon that appears when swiping */}
+      {reactionShown && (
+        <div
+          className={`pointer-events-none absolute top-1/2 -translate-y-1/2 grid h-9 w-9 place-items-center rounded-full bg-white/15 text-white transition-opacity ${
+            mine ? "right-2" : "left-2"
+          }`}
+          style={{ opacity: Math.min(1, Math.abs(dragX) / REPLY_THRESHOLD) }}
+        >
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7" /><path d="M20 18v-2a4 4 0 0 0-4-4H4" /></svg>
+        </div>
+      )}
       <div
         onContextMenu={(e) => { e.preventDefault(); setMenu(true); }}
-        onTouchStart={startPress}
-        onTouchEnd={endPress}
-        onTouchMove={endPress}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onTouchCancel={onTouchEnd}
         className="relative max-w-[82%] sm:max-w-[70%]"
+        style={{ transform: `translateX(${dragX}px)`, transition: dragX === 0 ? "transform 0.2s ease-out" : "none" }}
       >
+        <button
+          type="button"
+          aria-label="Reply"
+          onClick={onReply}
+          className={`absolute top-1/2 hidden -translate-y-1/2 grid h-7 w-7 place-items-center rounded-full bg-white/10 text-white/70 opacity-0 transition group-hover:opacity-100 sm:group-hover:flex ${mine ? "-left-9" : "-right-9"}`}
+        >
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7" /><path d="M20 18v-2a4 4 0 0 0-4-4H4" /></svg>
+        </button>
         <div
           className={`overflow-hidden rounded-3xl px-1 py-1 shadow-[var(--shadow-soft)] ${
             mine
@@ -605,6 +740,18 @@ function MessageBubble({
               : "rounded-bl-lg text-white glass"
           }`}
         >
+          {parent && (
+            <div className="mx-1 mt-1 flex gap-2 rounded-2xl border-l-[3px] border-[oklch(0.75_0.2_200)] bg-white/10 px-3 py-1.5">
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[11px] font-semibold text-[oklch(0.85_0.15_200)]">
+                  {parentAuthor ?? "Message"}
+                </div>
+                <div className="truncate text-xs text-white/80">
+                  {parent.body || (parent.image_urls?.length ? "📷 Photo" : "")}
+                </div>
+              </div>
+            </div>
+          )}
           {imgs.length > 0 && (
             <div className={`grid gap-1 p-1 ${gridCols}`}>
               {imgs.map((path) => {
@@ -638,11 +785,19 @@ function MessageBubble({
           <div className={`flex items-center justify-end gap-1 px-3 pb-2 pt-0.5 text-[10px] ${mine ? "text-white/80" : "text-white/50"}`}>
             <span>{formatTime(m.created_at)}</span>
             {mine && (
-              <span aria-label={m.read_at ? "Read" : "Delivered"}>
-                {m.read_at ? (
-                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="#7dd3fc" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m4 12 4 4 8-10" /><path d="m10 16 8-10" /></svg>
+              <span aria-label={status === "read" ? "Read" : "Delivered"} title={status === "read" ? "Read" : "Delivered"}>
+                {status === "read" ? (
+                  // Double check, blue = read
+                  <svg className="h-3.5 w-4" viewBox="0 0 24 16" fill="none" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 8l4 4 8-10" />
+                    <path d="M9 12l3 3 10-13" />
+                  </svg>
                 ) : (
-                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m4 12 4 4 8-10" /></svg>
+                  // Double check, gray = delivered
+                  <svg className="h-3.5 w-4" viewBox="0 0 24 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 8l4 4 8-10" />
+                    <path d="M9 12l3 3 10-13" />
+                  </svg>
                 )}
               </span>
             )}
@@ -653,6 +808,7 @@ function MessageBubble({
           <>
             <div className="fixed inset-0 z-30" onClick={() => setMenu(false)} />
             <div className={`glass absolute z-40 flex flex-col overflow-hidden rounded-2xl border border-white/10 text-sm shadow-[var(--shadow-soft)] ${mine ? "right-0" : "left-0"} top-full mt-2 min-w-[160px]`}>
+              <button className="px-4 py-2.5 text-left text-white/90 hover:bg-white/10" onClick={() => { onReply(); setMenu(false); }}>Reply</button>
               {m.body && (
                 <button className="px-4 py-2.5 text-left text-white/90 hover:bg-white/10" onClick={() => { onCopy(); setMenu(false); }}>Copy</button>
               )}
@@ -667,6 +823,7 @@ function MessageBubble({
     </div>
   );
 }
+
 
 function ImageViewer({ url, onClose }: { url: string; onClose: () => void }) {
   return (
