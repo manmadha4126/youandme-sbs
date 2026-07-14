@@ -51,13 +51,13 @@ function Landing() {
       <div className="relative z-10 flex flex-col items-center gap-10 text-center animate-fade-up">
         <div className="space-y-3">
           <p className="text-xs uppercase tracking-[0.4em] text-white/60 animate-fade-in">a private space for two</p>
-          <h1 className="font-display text-6xl font-bold text-gradient sm:text-7xl">youandme</h1>
+          <h1 className="font-kameron text-6xl font-bold text-gradient sm:text-7xl">youandme</h1>
         </div>
 
         <button
           onClick={handleEnter}
-          className={`glass group relative flex items-center gap-3 rounded-full px-10 py-5 text-lg font-semibold tracking-wide text-white shadow-[var(--shadow-glow)] transition-all duration-500 hover:scale-105 active:scale-95 animate-pulse-glow ${pressed ? "scale-95 opacity-70" : ""}`}
-          style={{ backgroundImage: "var(--gradient-bubble)" }}
+          className={`glass group relative flex items-center gap-3 rounded-full border border-white/25 px-10 py-5 font-kameron text-lg font-semibold tracking-wide text-white shadow-[0_20px_60px_-20px_oklch(0.7_0.22_15/0.6)] backdrop-blur-2xl transition-transform duration-500 hover:scale-105 active:scale-95 animate-heartbeat ${pressed ? "scale-95 opacity-70" : ""}`}
+          style={{ background: "linear-gradient(135deg, oklch(1 0 0 / 0.14), oklch(1 0 0 / 0.06))" }}
         >
           <span>youandme</span>
           <svg className="h-5 w-5 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
