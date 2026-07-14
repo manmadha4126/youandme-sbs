@@ -486,7 +486,8 @@ function ChatPage() {
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
           rows={1}
           placeholder="Message"
-          className="max-h-32 min-h-11 flex-1 resize-none rounded-3xl border border-white/15 bg-white/5 px-4 py-3 text-[15px] text-white placeholder-white/40 outline-none focus:border-white/30 focus:bg-white/10"
+          className="max-h-32 min-h-11 flex-1 resize-none rounded-3xl border border-white/20 px-4 py-3 text-[15px] text-white placeholder-white/60 outline-none shadow-inner focus:border-white/40"
+          style={{ backgroundImage: "linear-gradient(90deg, #0d5c63 0%, #114b5f 30%, #1a2d5c 60%, #3d1f6b 100%)" }}
         />
         <button
           onClick={sendMessage}
