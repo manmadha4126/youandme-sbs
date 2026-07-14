@@ -203,6 +203,12 @@ function ChatPage() {
     })();
   }, [messages, signedUrls]);
 
+  const messagesById = useMemo(() => {
+    const map: Record<string, Message> = {};
+    messages.forEach((m) => { map[m.id] = m; });
+    return map;
+  }, [messages]);
+
   const filteredMessages = useMemo(() => {
     if (!search.trim()) return messages;
     const q = search.toLowerCase();
