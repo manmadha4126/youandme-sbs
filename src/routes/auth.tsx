@@ -100,7 +100,7 @@ function AuthPage() {
 
         <p className="mt-6 text-center text-[11px] text-white/40">
           Only invited — no public sign-ups.
-          <br />Default password: <span className="text-white/70">loveyou</span>
+          <br />Your password is your name (lowercase).
         </p>
       </form>
     </main>
