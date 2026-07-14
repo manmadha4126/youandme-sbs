@@ -267,11 +267,18 @@ function ChatPage() {
   }, [profiles, userId]);
 
   return (
-    <div className="relative flex h-[100dvh] flex-col overflow-hidden" style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}>
+    <div
+      className="relative flex h-[100dvh] flex-col overflow-hidden"
+      style={{
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+        background: "linear-gradient(120deg, #0d5c63 0%, #114b5f 25%, #1a2d5c 55%, #3d1f6b 85%, #5a2a8c 100%)",
+      }}
+    >
       {/* Ambient glow */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-[oklch(0.5_0.24_340)] opacity-25 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[oklch(0.4_0.22_300)] opacity-30 blur-3xl" />
+        <div className="absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-[oklch(0.55_0.18_200)] opacity-30 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[oklch(0.45_0.24_310)] opacity-35 blur-3xl" />
       </div>
 
       {/* Header */}
