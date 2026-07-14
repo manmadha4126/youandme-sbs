@@ -131,7 +131,7 @@ function AuthPage() {
           {loading ? "Entering…" : "Enter"}
         </button>
 
-        <p className="mt-6 text-center text-[11px] text-white/70">
+        <p className="mt-6 text-center text-xs font-semibold text-white">
           Your password is your name (lowercase).
         </p>
       </form>
