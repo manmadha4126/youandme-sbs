@@ -156,6 +156,25 @@ function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, otherTyping]);
 
+  // Track mobile keyboard: shrink chat area by the visual-viewport delta so composer stays visible.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => {
+      const delta = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setKbInset(delta);
+      // Keep the latest message pinned when keyboard opens
+      requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ block: "end" }));
+    };
+    vv.addEventListener("resize", onResize);
+    vv.addEventListener("scroll", onResize);
+    onResize();
+    return () => {
+      vv.removeEventListener("resize", onResize);
+      vv.removeEventListener("scroll", onResize);
+    };
+  }, []);
+
   // Mark received messages as read
   useEffect(() => {
     if (!userId) return;
