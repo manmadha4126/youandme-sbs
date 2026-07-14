@@ -264,10 +264,12 @@ function ChatPage() {
       sender_id: userId,
       body: body || null,
       image_urls: imgs,
+      reply_to_id: replyTo?.id ?? null,
     });
     if (!error) {
       setText("");
       setPendingImages([]);
+      setReplyTo(null);
     }
     setUploading(false);
   }
