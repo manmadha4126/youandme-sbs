@@ -43,12 +43,14 @@ function ChatPage() {
   const [otherTyping, setOtherTyping] = useState(false);
   const [otherOnline, setOtherOnline] = useState(false);
   const [showEmojis, setShowEmojis] = useState(false);
+  const [showAttach, setShowAttach] = useState(false);
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Bootstrap: user, profiles, messages
