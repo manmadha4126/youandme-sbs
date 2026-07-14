@@ -422,10 +422,11 @@ function ChatPage() {
 
       {/* Composer */}
       <div className="glass sticky bottom-0 z-20 flex items-end gap-2 border-t border-white/10 px-3 py-3">
+        {/* Desktop-only emoji button */}
         <button
           aria-label={showEmojis ? "Close emojis" : "Emoji"}
           onClick={() => setShowEmojis((v) => !v)}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/5 text-xl hover:bg-white/10"
+          className="hidden sm:grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/5 text-xl hover:bg-white/10"
         >
           {showEmojis ? (
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
@@ -433,7 +434,8 @@ function ChatPage() {
             <span>😊</span>
           )}
         </button>
-        <div className="relative">
+        {/* Desktop-only attach button */}
+        <div className="relative hidden sm:block">
           <button
             aria-label="Attach"
             onClick={() => setShowAttach((v) => !v)}
@@ -479,16 +481,64 @@ function ChatPage() {
           className="hidden"
           onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
         />
-        <textarea
-          value={text}
-          onChange={(e) => onTextChange(e.target.value)}
-          onFocus={() => { setShowEmojis(false); setShowAttach(false); }}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-          rows={1}
-          placeholder="Message"
-          className="max-h-32 min-h-11 flex-1 resize-none rounded-3xl border border-white/20 px-4 py-3 text-[15px] text-white placeholder-white/60 outline-none shadow-inner focus:border-white/40"
-          style={{ backgroundImage: "linear-gradient(90deg, #0d5c63 0%, #114b5f 30%, #1a2d5c 60%, #3d1f6b 100%)" }}
-        />
+        {/* Textarea + mobile inline icons */}
+        <div className="relative flex-1">
+          <textarea
+            value={text}
+            onChange={(e) => onTextChange(e.target.value)}
+            onFocus={() => { setShowEmojis(false); setShowAttach(false); }}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+            rows={1}
+            placeholder="Message"
+            className="max-h-32 min-h-11 w-full resize-none rounded-3xl border border-white/20 px-4 py-3 pr-24 sm:pr-4 text-[15px] text-white placeholder-white/60 outline-none shadow-inner focus:border-white/40"
+            style={{ backgroundImage: "linear-gradient(90deg, #0d5c63 0%, #3d1f6b 50%, #0d5c63 100%)" }}
+          />
+          {/* Mobile-only inline attach + emoji */}
+          <div className="sm:hidden absolute right-1.5 bottom-1.5 flex items-center gap-1">
+            <button
+              type="button"
+              aria-label="Attach"
+              onClick={() => setShowAttach((v) => !v)}
+              className="grid h-8 w-8 place-items-center rounded-full text-white/90 hover:bg-white/10"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+            </button>
+            <button
+              type="button"
+              aria-label={showEmojis ? "Close emojis" : "Emoji"}
+              onClick={() => setShowEmojis((v) => !v)}
+              className="grid h-8 w-8 place-items-center rounded-full text-lg hover:bg-white/10"
+            >
+              {showEmojis ? (
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+              ) : (
+                <span>😊</span>
+              )}
+            </button>
+          </div>
+          {/* Mobile attach menu */}
+          {showAttach && (
+            <div className="sm:hidden">
+              <div className="fixed inset-0 z-30" onClick={() => setShowAttach(false)} />
+              <div className="glass absolute bottom-full right-0 z-40 mb-2 flex min-w-[160px] flex-col overflow-hidden rounded-2xl border border-white/10 text-sm shadow-[var(--shadow-soft)]">
+                <button
+                  className="flex items-center gap-3 px-4 py-3 text-left text-white/90 hover:bg-white/10"
+                  onClick={() => { setShowAttach(false); cameraInputRef.current?.click(); }}
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  Camera
+                </button>
+                <button
+                  className="flex items-center gap-3 px-4 py-3 text-left text-white/90 hover:bg-white/10"
+                  onClick={() => { setShowAttach(false); fileInputRef.current?.click(); }}
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                  Gallery
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
         <button
           onClick={sendMessage}
           disabled={uploading || (!text.trim() && pendingImages.length === 0)}
