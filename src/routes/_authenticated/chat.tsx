@@ -496,9 +496,10 @@ function MessageBubble({
       >
         <div
           className={`overflow-hidden rounded-3xl px-1 py-1 shadow-[var(--shadow-soft)] ${
-            mine ? "rounded-br-lg text-[oklch(0.15_0.06_320)]" : "rounded-bl-lg text-white glass"
+            mine
+              ? "rounded-br-lg bg-[oklch(0.42_0.20_330)] text-white border border-white/15"
+              : "rounded-bl-lg text-white glass"
           }`}
-          style={mine ? { backgroundImage: "var(--gradient-bubble)", color: "white" } : undefined}
         >
           {imgs.length > 0 && (
             <div className={`grid gap-1 p-1 ${gridCols}`}>
