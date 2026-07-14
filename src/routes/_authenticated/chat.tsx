@@ -278,29 +278,47 @@ function ChatPage() {
         </div>
         <div className="min-w-0 flex-1">
           <div className="truncate font-display text-lg font-semibold leading-tight text-gradient">youandme</div>
-          <div className="flex items-center gap-1.5 text-[11px] text-white/60">
+          <div className="flex items-center gap-1.5 text-[11px] text-white/70">
             <span className={`h-2 w-2 rounded-full ${otherOnline ? "bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400/70" : "bg-white/30"}`} />
-            <span>{otherOnline ? (otherTyping ? "typing…" : "online") : "offline"}</span>
-            {otherProfile && <span className="ml-1 truncate text-white/40">· with {otherProfile.display_name}</span>}
+            <span className="truncate">
+              {otherProfile ? (
+                <>
+                  <span className="font-semibold text-white">{otherProfile.display_name}</span>
+                  <span className="text-white/60"> is {otherOnline ? (otherTyping ? "typing…" : "online") : "offline"}</span>
+                </>
+              ) : (
+                <span className="text-white/60">{otherOnline ? "online" : "offline"}</span>
+              )}
+            </span>
           </div>
         </div>
-        <button aria-label="Search" onClick={() => setShowSearch((v) => !v)} className="grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/80 hover:bg-white/10">
+        <button aria-label="Search" onClick={() => { if (showSearch) setSearch(""); setShowSearch((v) => !v); }} className="grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/80 hover:bg-white/10">
           <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
         </button>
-        <button aria-label="Sign out" onClick={signOut} className="grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/80 hover:bg-white/10">
-          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" x2="9" y1="12" y2="12" /></svg>
+        <button onClick={signOut} className="shrink-0 rounded-full bg-white/5 px-4 py-2 text-sm font-medium text-white/90 hover:bg-white/10">
+          Logout
         </button>
       </header>
 
       {showSearch && (
         <div className="glass border-b border-white/10 px-4 py-2 animate-fade-in">
-          <input
-            autoFocus
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search messages…"
-            className="w-full rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white placeholder-white/40 outline-none focus:border-white/30"
-          />
+          <div className="relative">
+            <input
+              autoFocus
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search messages…"
+              className="w-full rounded-full border border-white/10 bg-white/5 px-4 py-2 pr-10 text-sm text-white placeholder-white/40 outline-none focus:border-white/30"
+            />
+            <button
+              type="button"
+              aria-label="Close search"
+              onClick={() => { setSearch(""); setShowSearch(false); }}
+              className="absolute right-1 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+            </button>
+          </div>
         </div>
       )}
 
