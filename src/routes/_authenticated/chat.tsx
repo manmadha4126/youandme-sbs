@@ -49,10 +49,13 @@ function ChatPage() {
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [kbInset, setKbInset] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Bootstrap: user, profiles, messages
