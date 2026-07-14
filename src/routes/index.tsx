@@ -55,8 +55,12 @@ function Landing() {
 
       <div className="relative z-10 flex flex-col items-center gap-10 text-center animate-fade-up">
         <div className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.4em] text-white/60 animate-fade-in">a private space for two</p>
-          <h1 className="font-kameron text-6xl font-bold text-white drop-shadow-lg sm:text-7xl">YouAndMe</h1>
+          <p className="text-sm font-semibold uppercase tracking-[0.4em] text-white drop-shadow-md animate-fade-in sm:text-base">A Private Space For Two</p>
+          <h1 className="font-kameron text-6xl font-bold drop-shadow-lg sm:text-7xl">
+            <span className="text-white">You</span>
+            <span className="text-black">And</span>
+            <span className="text-white">Me</span>
+          </h1>
         </div>
 
         <button
