@@ -109,7 +109,7 @@ function AuthPage() {
           ))}
         </div>
 
-        <label className="mb-2 block text-xs uppercase tracking-widest text-white/80">Password</label>
+        <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-black">Password</label>
         <input
           type="password"
           value={password}
