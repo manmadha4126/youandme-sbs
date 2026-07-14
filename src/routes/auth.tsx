@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/auth")({
@@ -46,6 +47,15 @@ function AuthPage() {
 
   return (
     <main className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden px-6 py-10">
+      <button
+        type="button"
+        aria-label="Back to home"
+        onClick={() => navigate({ to: "/" })}
+        className="absolute top-4 left-4 z-50 grid h-11 w-11 place-items-center rounded-full bg-white text-[oklch(0.45_0.22_300)] shadow-lg transition-transform hover:scale-105 active:scale-95"
+      >
+        <ArrowLeft size={22} strokeWidth={2.5} />
+      </button>
+
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute -top-32 left-1/4 h-96 w-96 rounded-full bg-[oklch(0.55_0.24_340)] opacity-40 blur-3xl animate-float-slow" />
         <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[oklch(0.45_0.22_300)] opacity-40 blur-3xl animate-float-slower" />

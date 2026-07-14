@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { ArrowLeft } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 
 export const Route = createFileRoute("/_authenticated/chat")({
@@ -275,6 +276,14 @@ function ChatPage() {
 
       {/* Header */}
       <header className="glass sticky top-0 z-20 flex items-center gap-3 px-4 py-3 border-b border-white/10">
+        <button
+          type="button"
+          aria-label="Back to auth"
+          onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/auth", replace: true }); }}
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white text-[oklch(0.45_0.22_300)] shadow-lg transition-transform hover:scale-105 active:scale-95"
+        >
+          <ArrowLeft size={22} strokeWidth={2.5} />
+        </button>
         <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-lg font-semibold shadow-[var(--shadow-glow)]" style={{ backgroundImage: "var(--gradient-bubble)" }}>
           {otherProfile?.display_name?.[0] ?? "•"}
         </div>
