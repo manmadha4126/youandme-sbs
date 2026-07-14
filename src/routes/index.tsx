@@ -65,7 +65,7 @@ function Landing() {
           </svg>
         </button>
 
-        <p className="text-xs text-white/40">tap to enter</p>
+        <p className="text-base font-medium tracking-wide text-white">Tap to Start Our Conversation.</p>
       </div>
     </main>
   );
