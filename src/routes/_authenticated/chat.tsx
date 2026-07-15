@@ -344,10 +344,24 @@ function ChatPage() {
             </span>
           </div>
         </div>
-        <button aria-label="Search" onClick={() => { if (showSearch) setSearch(""); setShowSearch((v) => !v); }} className="grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/80 hover:bg-white/10">
+        <button
+          aria-label="Voice call"
+          onClick={() => (window as unknown as { __startCall?: (k: "audio" | "video") => void }).__startCall?.("audio")}
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-95"
+        >
+          <Phone size={18} />
+        </button>
+        <button
+          aria-label="Video call"
+          onClick={() => (window as unknown as { __startCall?: (k: "audio" | "video") => void }).__startCall?.("video")}
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-95"
+        >
+          <Video size={18} />
+        </button>
+        <button aria-label="Search" onClick={() => { if (showSearch) setSearch(""); setShowSearch((v) => !v); }} className="hidden sm:grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/80 hover:bg-white/10">
           <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
         </button>
-        <button onClick={signOut} className="shrink-0 rounded-full bg-white/5 px-4 py-2 text-sm font-medium text-white/90 hover:bg-white/10">
+        <button onClick={signOut} className="hidden sm:inline-flex shrink-0 rounded-full bg-white/5 px-4 py-2 text-sm font-medium text-white/90 hover:bg-white/10">
           Logout
         </button>
       </header>
