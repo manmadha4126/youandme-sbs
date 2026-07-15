@@ -378,7 +378,7 @@ function ChatPage() {
         </button>
 
         {/* Mobile three-dot menu */}
-        <div className="relative sm:hidden">
+        <div className="relative sm:hidden" data-mobile-menu>
           <button
             aria-label="More options"
             onClick={() => setShowMobileMenu((v) => !v)}
