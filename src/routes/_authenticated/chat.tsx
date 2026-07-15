@@ -53,6 +53,7 @@ function ChatPage() {
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [kbInset, setKbInset] = useState(0);
   const [callState, setCallState] = useState<CallState>({ status: "idle" });
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
