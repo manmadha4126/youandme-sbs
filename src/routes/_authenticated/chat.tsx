@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Phone, Video } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
+import { CallOverlay, type CallState } from "@/components/CallOverlay";
 
 export const Route = createFileRoute("/_authenticated/chat")({
   component: ChatPage,
@@ -51,6 +52,7 @@ function ChatPage() {
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [kbInset, setKbInset] = useState(0);
+  const [callState, setCallState] = useState<CallState>({ status: "idle" });
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -342,10 +344,24 @@ function ChatPage() {
             </span>
           </div>
         </div>
-        <button aria-label="Search" onClick={() => { if (showSearch) setSearch(""); setShowSearch((v) => !v); }} className="grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/80 hover:bg-white/10">
+        <button
+          aria-label="Voice call"
+          onClick={() => (window as unknown as { __startCall?: (k: "audio" | "video") => void }).__startCall?.("audio")}
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-95"
+        >
+          <Phone size={18} />
+        </button>
+        <button
+          aria-label="Video call"
+          onClick={() => (window as unknown as { __startCall?: (k: "audio" | "video") => void }).__startCall?.("video")}
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-95"
+        >
+          <Video size={18} />
+        </button>
+        <button aria-label="Search" onClick={() => { if (showSearch) setSearch(""); setShowSearch((v) => !v); }} className="hidden sm:grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/80 hover:bg-white/10">
           <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
         </button>
-        <button onClick={signOut} className="shrink-0 rounded-full bg-white/5 px-4 py-2 text-sm font-medium text-white/90 hover:bg-white/10">
+        <button onClick={signOut} className="hidden sm:inline-flex shrink-0 rounded-full bg-white/5 px-4 py-2 text-sm font-medium text-white/90 hover:bg-white/10">
           Logout
         </button>
       </header>
@@ -377,7 +393,8 @@ function ChatPage() {
         ref={scrollRef}
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); }}
-        className="flex-1 space-y-4 overflow-y-auto px-3 py-4 sm:px-6"
+        className="scrollbar-hide flex-1 space-y-4 overflow-y-auto overscroll-contain px-3 py-4 sm:px-6"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
       >
         {grouped.length === 0 && (
           <div className="mt-20 text-center text-sm text-white/50">
@@ -551,27 +568,27 @@ function ChatPage() {
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
             rows={1}
             placeholder="Message"
-            className="max-h-32 min-h-11 w-full resize-none rounded-3xl border border-white/20 px-4 py-3 pr-24 sm:pr-4 text-[15px] text-white placeholder-white/60 outline-none shadow-inner focus:border-white/40"
+            className="max-h-32 min-h-12 w-full resize-none rounded-3xl border border-white/20 px-4 py-3 pr-[104px] sm:pr-4 text-[15px] text-white placeholder-white/60 outline-none shadow-inner focus:border-white/40"
             style={{ backgroundImage: "linear-gradient(90deg, #0d5c63 0%, #3d1f6b 50%, #0d5c63 100%)" }}
           />
-          {/* Mobile-only inline attach + emoji */}
-          <div className="sm:hidden absolute right-1.5 bottom-1.5 flex items-center gap-1">
+          {/* Mobile-only inline attach + emoji — vertically centered, larger */}
+          <div className="sm:hidden absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
             <button
               type="button"
               aria-label="Attach"
               onClick={() => setShowAttach((v) => !v)}
-              className="grid h-8 w-8 place-items-center rounded-full text-white/90 hover:bg-white/10"
+              className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-95"
             >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+              <svg className="h-[22px] w-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
             </button>
             <button
               type="button"
               aria-label={showEmojis ? "Close emojis" : "Emoji"}
               onClick={() => setShowEmojis((v) => !v)}
-              className="grid h-8 w-8 place-items-center rounded-full text-lg hover:bg-white/10"
+              className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-xl hover:bg-white/20 active:scale-95"
             >
               {showEmojis ? (
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
               ) : (
                 <span>😊</span>
               )}
@@ -617,6 +634,17 @@ function ChatPage() {
       {/* Full-screen image viewer */}
       {previewOpen && (
         <ImageViewer url={signedUrls[previewOpen] || previewOpen} onClose={() => setPreviewOpen(null)} />
+      )}
+
+      {/* Voice / video call overlay */}
+      {userId && (
+        <CallOverlay
+          userId={userId}
+          otherId={otherProfile?.id ?? null}
+          otherName={otherProfile?.display_name ?? "them"}
+          callState={callState}
+          setCallState={setCallState}
+        />
       )}
     </div>
   );
