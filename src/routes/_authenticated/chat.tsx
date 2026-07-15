@@ -635,6 +635,17 @@ function ChatPage() {
       {previewOpen && (
         <ImageViewer url={signedUrls[previewOpen] || previewOpen} onClose={() => setPreviewOpen(null)} />
       )}
+
+      {/* Voice / video call overlay */}
+      {userId && (
+        <CallOverlay
+          userId={userId}
+          otherId={otherProfile?.id ?? null}
+          otherName={otherProfile?.display_name ?? "them"}
+          callState={callState}
+          setCallState={setCallState}
+        />
+      )}
     </div>
   );
 }
