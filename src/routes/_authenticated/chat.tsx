@@ -393,7 +393,8 @@ function ChatPage() {
         ref={scrollRef}
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); }}
-        className="flex-1 space-y-4 overflow-y-auto px-3 py-4 sm:px-6"
+        className="scrollbar-hide flex-1 space-y-4 overflow-y-auto overscroll-contain px-3 py-4 sm:px-6"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
       >
         {grouped.length === 0 && (
           <div className="mt-20 text-center text-sm text-white/50">
