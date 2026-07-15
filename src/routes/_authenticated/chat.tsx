@@ -365,6 +365,36 @@ function ChatPage() {
         <button onClick={signOut} className="hidden sm:inline-flex shrink-0 rounded-full bg-white/5 px-4 py-2 text-sm font-medium text-white/90 hover:bg-white/10">
           Logout
         </button>
+
+        {/* Mobile three-dot menu */}
+        <div className="relative sm:hidden">
+          <button
+            aria-label="More options"
+            onClick={() => setShowMobileMenu((v) => !v)}
+            className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-95"
+          >
+            <MoreVertical size={20} />
+          </button>
+          {showMobileMenu && (
+            <div className="absolute right-0 top-full mt-2 min-w-[140px] overflow-hidden rounded-2xl border border-white/10 bg-[#1a2d5c]/95 shadow-xl backdrop-blur-md animate-fade-in z-50">
+              <button
+                onClick={() => { setShowMobileMenu(false); if (showSearch) setSearch(""); setShowSearch((v) => !v); }}
+                className="flex w-full items-center gap-2 px-4 py-3 text-sm text-white hover:bg-white/10"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
+                Search
+              </button>
+              <div className="h-px bg-white/10" />
+              <button
+                onClick={() => { setShowMobileMenu(false); signOut(); }}
+                className="flex w-full items-center gap-2 px-4 py-3 text-sm text-white hover:bg-white/10"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
       </header>
 
       {showSearch && (
