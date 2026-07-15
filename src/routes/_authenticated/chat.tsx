@@ -178,6 +178,17 @@ function ChatPage() {
     };
   }, []);
 
+  // Close mobile menu on outside click
+  useEffect(() => {
+    if (!showMobileMenu) return;
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-mobile-menu]")) setShowMobileMenu(false);
+    };
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, [showMobileMenu]);
+
   // Mark received messages as read
   useEffect(() => {
     if (!userId) return;
