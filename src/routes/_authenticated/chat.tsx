@@ -568,27 +568,27 @@ function ChatPage() {
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
             rows={1}
             placeholder="Message"
-            className="max-h-32 min-h-11 w-full resize-none rounded-3xl border border-white/20 px-4 py-3 pr-24 sm:pr-4 text-[15px] text-white placeholder-white/60 outline-none shadow-inner focus:border-white/40"
+            className="max-h-32 min-h-12 w-full resize-none rounded-3xl border border-white/20 px-4 py-3 pr-[104px] sm:pr-4 text-[15px] text-white placeholder-white/60 outline-none shadow-inner focus:border-white/40"
             style={{ backgroundImage: "linear-gradient(90deg, #0d5c63 0%, #3d1f6b 50%, #0d5c63 100%)" }}
           />
-          {/* Mobile-only inline attach + emoji */}
-          <div className="sm:hidden absolute right-1.5 bottom-1.5 flex items-center gap-1">
+          {/* Mobile-only inline attach + emoji — vertically centered, larger */}
+          <div className="sm:hidden absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
             <button
               type="button"
               aria-label="Attach"
               onClick={() => setShowAttach((v) => !v)}
-              className="grid h-8 w-8 place-items-center rounded-full text-white/90 hover:bg-white/10"
+              className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-95"
             >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+              <svg className="h-[22px] w-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
             </button>
             <button
               type="button"
               aria-label={showEmojis ? "Close emojis" : "Emoji"}
               onClick={() => setShowEmojis((v) => !v)}
-              className="grid h-8 w-8 place-items-center rounded-full text-lg hover:bg-white/10"
+              className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-xl hover:bg-white/20 active:scale-95"
             >
               {showEmojis ? (
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
               ) : (
                 <span>😊</span>
               )}
