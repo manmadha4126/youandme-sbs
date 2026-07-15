@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Phone, Video } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
+import { CallOverlay, type CallState } from "@/components/CallOverlay";
 
 export const Route = createFileRoute("/_authenticated/chat")({
   component: ChatPage,
