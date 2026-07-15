@@ -54,6 +54,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "A private space for two — real-time messages, photos, and moments." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "youandme" },
+      { name: "twitter:description", content: "A private space for two — real-time messages, photos, and moments." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f29ef139-1dee-4545-b1ab-ef5db6481ce2/id-preview-d1106223--9d6f9f0f-bf59-474f-a7dd-1b497179150a.lovable.app-1784094436901.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f29ef139-1dee-4545-b1ab-ef5db6481ce2/id-preview-d1106223--9d6f9f0f-bf59-474f-a7dd-1b497179150a.lovable.app-1784094436901.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
