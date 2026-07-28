@@ -4,8 +4,15 @@ import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: typeof s.next === "string" ? s.next : "",
+  }),
   component: AuthPage,
 });
+
+function isSafeNext(next: string): boolean {
+  return next.startsWith("/") && !next.startsWith("//");
+}
 
 const USERS = [
   { username: "manmadha", label: "manmadha" },
