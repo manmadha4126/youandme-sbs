@@ -15,8 +15,8 @@ function isSafeNext(next: string): boolean {
 }
 
 const USERS = [
-  { username: "manmadha", label: "manmadha" },
-  { username: "likhitha", label: "likhitha" },
+  { username: "manmadha", label: "M" },
+  { username: "likhitha", label: "L" },
 ];
 
 function toEmail(username: string) {
