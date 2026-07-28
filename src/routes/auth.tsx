@@ -149,7 +149,7 @@ function AuthPage() {
         </button>
 
         <p className="mt-6 text-center text-xs font-semibold text-white">
-          Your password is your name (lowercase).
+          your password is your name lower case
         </p>
       </form>
     </main>
