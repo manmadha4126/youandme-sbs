@@ -25,18 +25,28 @@ function toEmail(username: string) {
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
   const [selected, setSelected] = useState<string>(USERS[0].username);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const goPostLogin = () => {
+    if (next && isSafeNext(next)) {
+      window.location.href = next;
+    } else {
+      navigate({ to: "/chat", replace: true });
+    }
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/chat", replace: true });
+      if (data.session) goPostLogin();
     });
     // Ensure the two accounts exist (idempotent)
     fetch("/api/public/seed", { method: "POST" }).catch(() => {});
-  }, [navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -49,7 +59,7 @@ function AuthPage() {
       setError("Wrong password. Try again.");
       return;
     }
-    navigate({ to: "/chat", replace: true });
+    goPostLogin();
   }
 
   return (
