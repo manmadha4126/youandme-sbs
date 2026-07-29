@@ -733,6 +733,9 @@ function MessageBubble({
   onEdit: (newBody: string) => void;
 }) {
   const [menu, setMenu] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState(m.body ?? "");
+  const [showDetails, setShowDetails] = useState(false);
   const [dragX, setDragX] = useState(0);
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startX = useRef<number | null>(null);
