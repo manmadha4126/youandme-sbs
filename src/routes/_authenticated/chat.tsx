@@ -895,7 +895,7 @@ function MessageBubble({
               </div>
             </div>
           )}
-          <div className={`flex items-center justify-end gap-1 px-3 pb-2 pt-0.5 text-[10px] ${mine ? "text-white/80" : "text-white/50"}`}>
+          <div className={`flex items-center justify-end gap-1 px-3 pb-2 pt-0.5 text-[10px] ${mine ? "text-white/80" : "text-slate-500"}`}>
             <span>{formatTime(m.created_at)}</span>
             {mine && (
               <span aria-label={status === "read" ? "Read" : "Delivered"} title={status === "read" ? "Read" : "Delivered"}>
