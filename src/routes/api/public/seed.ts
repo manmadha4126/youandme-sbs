@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 const USERS = [
-  { username: "manmadha", display_name: "Manmadha" },
-  { username: "likhitha", display_name: "Likhitha" },
+  { username: "manmadha", display_name: "Manmadha", password: "8074666415" },
+  { username: "likhitha", display_name: "Likhitha", password: "7674885189" },
 ];
 
 export const Route = createFileRoute("/api/public/seed")({
