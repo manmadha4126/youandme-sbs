@@ -920,15 +920,38 @@ function MessageBubble({
         {menu && (
           <>
             <div className="fixed inset-0 z-30" onClick={() => setMenu(false)} />
-            <div className={`glass absolute z-40 flex flex-col overflow-hidden rounded-2xl border border-white/10 text-sm shadow-[var(--shadow-soft)] ${mine ? "right-0" : "left-0"} top-full mt-2 min-w-[160px]`}>
-              <button className="px-4 py-2.5 text-left text-white/90 hover:bg-white/10" onClick={() => { onReply(); setMenu(false); }}>Reply</button>
-              {m.body && (
-                <button className="px-4 py-2.5 text-left text-white/90 hover:bg-white/10" onClick={() => { onCopy(); setMenu(false); }}>Copy</button>
+            <div className={`absolute z-40 flex flex-col overflow-hidden rounded-2xl border border-white/20 bg-[#1a2d5c]/95 text-sm shadow-2xl backdrop-blur-md ${mine ? "right-0" : "left-0"} bottom-full mb-2 min-w-[170px]`}>
+              <button className="px-4 py-2.5 text-left text-white/95 hover:bg-white/10" onClick={() => { onReply(); setMenu(false); }}>Reply</button>
+              {mine && m.body && (
+                <button className="px-4 py-2.5 text-left text-white/95 hover:bg-white/10" onClick={() => { setEditing(true); setMenu(false); }}>Edit</button>
               )}
+              {m.body && (
+                <button className="px-4 py-2.5 text-left text-white/95 hover:bg-white/10" onClick={() => { onCopy(); setMenu(false); }}>Copy</button>
+              )}
+              <button className="px-4 py-2.5 text-left text-white/95 hover:bg-white/10" onClick={() => { setShowDetails(true); setMenu(false); }}>Details</button>
               {mine && (
                 <button className="px-4 py-2.5 text-left text-[oklch(0.75_0.2_25)] hover:bg-white/10" onClick={() => { onDelete(); setMenu(false); }}>Delete</button>
               )}
               <button className="px-4 py-2.5 text-left text-white/60 hover:bg-white/10" onClick={() => setMenu(false)}>Cancel</button>
+            </div>
+          </>
+        )}
+        {showDetails && (
+          <>
+            <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setShowDetails(false)} />
+            <div className="fixed left-1/2 top-1/2 z-50 w-[88%] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-white/15 bg-[#1a2d5c]/95 p-5 text-white shadow-2xl">
+              <h3 className="mb-3 text-base font-semibold">Message details</h3>
+              <dl className="space-y-2 text-sm">
+                <div className="flex justify-between gap-4"><dt className="text-white/60">Sent</dt><dd>{format(new Date(m.created_at), "PPp")}</dd></div>
+                <div className="flex justify-between gap-4"><dt className="text-white/60">Status</dt><dd>{m.read_at ? "Read" : "Delivered"}</dd></div>
+                {m.read_at && (
+                  <div className="flex justify-between gap-4"><dt className="text-white/60">Read at</dt><dd>{format(new Date(m.read_at), "PPp")}</dd></div>
+                )}
+                {m.image_urls?.length ? (
+                  <div className="flex justify-between gap-4"><dt className="text-white/60">Images</dt><dd>{m.image_urls.length}</dd></div>
+                ) : null}
+              </dl>
+              <button onClick={() => setShowDetails(false)} className="mt-4 w-full rounded-full bg-white py-2 text-sm font-semibold text-black">Close</button>
             </div>
           </>
         )}
