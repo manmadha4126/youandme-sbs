@@ -719,6 +719,7 @@ function MessageBubble({
   onDelete,
   onCopy,
   onReply,
+  onEdit,
 }: {
   mine: boolean;
   m: Message;
@@ -729,6 +730,7 @@ function MessageBubble({
   onDelete: () => void;
   onCopy: () => void;
   onReply: () => void;
+  onEdit: (newBody: string) => void;
 }) {
   const [menu, setMenu] = useState(false);
   const [dragX, setDragX] = useState(0);
