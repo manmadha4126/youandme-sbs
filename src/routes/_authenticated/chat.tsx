@@ -21,7 +21,14 @@ type Message = {
 
 type Profile = { id: string; username: string; display_name: string };
 
-const EMOJIS = ["❤️", "😂", "😍", "😘", "🥰", "😊", "😭", "🔥", "✨", "🌸", "💜", "💕", "😉", "😴", "🙈", "🌙", "☀️", "🎀"];
+const EMOJIS = [
+  "❤️","😂","😍","😘","🥰","😊","😭","🔥","✨","🌸","💜","💕","😉","😴","🙈","🌙","☀️","🎀",
+  "😀","😁","😆","😅","🤣","😇","🙂","😌","😋","😜","🤪","😝","🤗","🤔","🤩","🥳","😎","🤠",
+  "😢","😩","😤","😡","🥺","😳","😱","😬","🤯","😷","🤒","🤧","🥶","🥵","😈","👻","💀","🤖",
+  "❤️‍🔥","💖","💗","💘","💝","💞","💓","💟","💌","💋","👀","👑","🌹","🌷","🌻","🌼","🌈","⭐",
+  "🎉","🎊","🎁","🍰","🧁","🍫","🍓","🍒","🍑","🍎","☕","🍷","🥂","🍾","🎶","🎵","🌊","🌟",
+  "👍","👎","👏","🙏","🙌","💪","🤝","🤗","🫶","💯","✅","❌"
+];
 
 function formatTime(d: string) {
   const date = new Date(d);
@@ -298,6 +305,12 @@ function ChatPage() {
     await supabase.from("messages").delete().eq("id", id);
   }
 
+  async function editMessage(id: string, newBody: string) {
+    const body = newBody.trim();
+    if (!body) return;
+    await supabase.from("messages").update({ body }).eq("id", id);
+  }
+
   async function copyText(t: string) {
     try { await navigator.clipboard.writeText(t); } catch {}
   }
@@ -318,7 +331,7 @@ function ChatPage() {
         height: "100dvh",
         paddingTop: "env(safe-area-inset-top)",
         paddingBottom: `calc(env(safe-area-inset-bottom) + ${kbInset}px)`,
-        background: "linear-gradient(120deg, #0d5c63 0%, #114b5f 25%, #1a2d5c 55%, #3d1f6b 85%, #5a2a8c 100%)",
+        background: "linear-gradient(180deg, #87ceeb 0%, #b6e1f4 35%, #e8eef5 70%, #f8f6f0 100%)",
       }}
     >
       {/* Ambient glow */}
@@ -341,7 +354,7 @@ function ChatPage() {
           {otherProfile?.display_name?.[0] ?? "•"}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="truncate font-display text-lg font-semibold leading-tight text-gradient">youandme</div>
+          <div className="truncate font-kameron text-2xl font-bold leading-tight"><span className="text-white drop-shadow">You</span><span className="text-black">And</span><span className="text-white drop-shadow">Me</span></div>
           <div className="flex items-center gap-1.5 text-[11px] text-white/70">
             <span className={`h-2 w-2 rounded-full ${otherOnline ? "bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400/70" : "bg-white/30"}`} />
             <span className="truncate">
@@ -466,6 +479,7 @@ function ChatPage() {
                   onDelete={() => deleteMessage(m.id)}
                   onCopy={() => m.body && copyText(m.body)}
                   onReply={() => { setReplyTo(m); textareaRef.current?.focus(); }}
+                  onEdit={(nb) => editMessage(m.id, nb)}
                 />
               );
             })}
@@ -474,10 +488,13 @@ function ChatPage() {
 
         {otherTyping && (
           <div className="flex justify-start">
-            <div className="glass flex items-center gap-1 rounded-full px-4 py-2.5">
-              {[0, 1, 2].map((i) => (
-                <span key={i} className="inline-block h-1.5 w-1.5 rounded-full bg-white/70" style={{ animation: `typing-bounce 1.2s ${i * 0.15}s infinite` }} />
-              ))}
+            <div className="glass flex items-center gap-2 rounded-full px-4 py-2 text-xs font-medium text-white/90">
+              <span>typing</span>
+              <span className="inline-flex gap-0.5">
+                {[0, 1, 2].map((i) => (
+                  <span key={i} className="inline-block h-1 w-1 rounded-full bg-white/80" style={{ animation: `typing-bounce 1.2s ${i * 0.15}s infinite` }} />
+                ))}
+              </span>
             </div>
           </div>
         )}
@@ -702,6 +719,7 @@ function MessageBubble({
   onDelete,
   onCopy,
   onReply,
+  onEdit,
 }: {
   mine: boolean;
   m: Message;
@@ -712,8 +730,12 @@ function MessageBubble({
   onDelete: () => void;
   onCopy: () => void;
   onReply: () => void;
+  onEdit: (newBody: string) => void;
 }) {
   const [menu, setMenu] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState(m.body ?? "");
+  const [showDetails, setShowDetails] = useState(false);
   const [dragX, setDragX] = useState(0);
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startX = useRef<number | null>(null);
@@ -807,7 +829,7 @@ function MessageBubble({
           className={`overflow-hidden rounded-3xl px-1 py-1 shadow-[var(--shadow-soft)] ${
             mine
               ? "rounded-br-lg bg-[oklch(0.42_0.20_330)] text-white border border-white/15"
-              : "rounded-bl-lg text-white glass"
+              : "rounded-bl-lg bg-white text-slate-900 border border-slate-200 shadow-sm"
           }`}
         >
           {parent && (
@@ -847,12 +869,33 @@ function MessageBubble({
               })}
             </div>
           )}
-          {m.body && (
+          {m.body && !editing && (
             <p className={`whitespace-pre-wrap break-words px-4 py-2 text-[15px] leading-snug ${imgs.length > 0 ? "pt-2" : ""}`}>
               {m.body}
             </p>
           )}
-          <div className={`flex items-center justify-end gap-1 px-3 pb-2 pt-0.5 text-[10px] ${mine ? "text-white/80" : "text-white/50"}`}>
+          {editing && (
+            <div className="px-2 py-2">
+              <textarea
+                autoFocus
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                rows={2}
+                className="w-full resize-none rounded-2xl border border-white/25 bg-white/15 px-3 py-2 text-[15px] text-white placeholder-white/50 outline-none focus:border-white/50"
+              />
+              <div className="mt-1 flex justify-end gap-2">
+                <button
+                  onClick={() => { setEditing(false); setEditText(m.body ?? ""); }}
+                  className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/90 hover:bg-white/20"
+                >Cancel</button>
+                <button
+                  onClick={() => { onEdit(editText); setEditing(false); }}
+                  className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-black hover:opacity-90"
+                >Save</button>
+              </div>
+            </div>
+          )}
+          <div className={`flex items-center justify-end gap-1 px-3 pb-2 pt-0.5 text-[10px] ${mine ? "text-white/80" : "text-slate-500"}`}>
             <span>{formatTime(m.created_at)}</span>
             {mine && (
               <span aria-label={status === "read" ? "Read" : "Delivered"} title={status === "read" ? "Read" : "Delivered"}>
@@ -877,15 +920,38 @@ function MessageBubble({
         {menu && (
           <>
             <div className="fixed inset-0 z-30" onClick={() => setMenu(false)} />
-            <div className={`glass absolute z-40 flex flex-col overflow-hidden rounded-2xl border border-white/10 text-sm shadow-[var(--shadow-soft)] ${mine ? "right-0" : "left-0"} top-full mt-2 min-w-[160px]`}>
-              <button className="px-4 py-2.5 text-left text-white/90 hover:bg-white/10" onClick={() => { onReply(); setMenu(false); }}>Reply</button>
-              {m.body && (
-                <button className="px-4 py-2.5 text-left text-white/90 hover:bg-white/10" onClick={() => { onCopy(); setMenu(false); }}>Copy</button>
+            <div className={`absolute z-40 flex flex-col overflow-hidden rounded-2xl border border-white/20 bg-[#1a2d5c]/95 text-sm shadow-2xl backdrop-blur-md ${mine ? "right-0" : "left-0"} bottom-full mb-2 min-w-[170px]`}>
+              <button className="px-4 py-2.5 text-left text-white/95 hover:bg-white/10" onClick={() => { onReply(); setMenu(false); }}>Reply</button>
+              {mine && m.body && (
+                <button className="px-4 py-2.5 text-left text-white/95 hover:bg-white/10" onClick={() => { setEditing(true); setMenu(false); }}>Edit</button>
               )}
+              {m.body && (
+                <button className="px-4 py-2.5 text-left text-white/95 hover:bg-white/10" onClick={() => { onCopy(); setMenu(false); }}>Copy</button>
+              )}
+              <button className="px-4 py-2.5 text-left text-white/95 hover:bg-white/10" onClick={() => { setShowDetails(true); setMenu(false); }}>Details</button>
               {mine && (
                 <button className="px-4 py-2.5 text-left text-[oklch(0.75_0.2_25)] hover:bg-white/10" onClick={() => { onDelete(); setMenu(false); }}>Delete</button>
               )}
               <button className="px-4 py-2.5 text-left text-white/60 hover:bg-white/10" onClick={() => setMenu(false)}>Cancel</button>
+            </div>
+          </>
+        )}
+        {showDetails && (
+          <>
+            <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setShowDetails(false)} />
+            <div className="fixed left-1/2 top-1/2 z-50 w-[88%] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-white/15 bg-[#1a2d5c]/95 p-5 text-white shadow-2xl">
+              <h3 className="mb-3 text-base font-semibold">Message details</h3>
+              <dl className="space-y-2 text-sm">
+                <div className="flex justify-between gap-4"><dt className="text-white/60">Sent</dt><dd>{format(new Date(m.created_at), "PPp")}</dd></div>
+                <div className="flex justify-between gap-4"><dt className="text-white/60">Status</dt><dd>{m.read_at ? "Read" : "Delivered"}</dd></div>
+                {m.read_at && (
+                  <div className="flex justify-between gap-4"><dt className="text-white/60">Read at</dt><dd>{format(new Date(m.read_at), "PPp")}</dd></div>
+                )}
+                {m.image_urls?.length ? (
+                  <div className="flex justify-between gap-4"><dt className="text-white/60">Images</dt><dd>{m.image_urls.length}</dd></div>
+                ) : null}
+              </dl>
+              <button onClick={() => setShowDetails(false)} className="mt-4 w-full rounded-full bg-white py-2 text-sm font-semibold text-black">Close</button>
             </div>
           </>
         )}
