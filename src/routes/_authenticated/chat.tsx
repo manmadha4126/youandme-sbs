@@ -348,7 +348,7 @@ function ChatPage() {
           {otherProfile?.display_name?.[0] ?? "•"}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="truncate font-display text-lg font-semibold leading-tight text-gradient">youandme</div>
+          <div className="truncate font-kameron text-2xl font-bold leading-tight"><span className="text-white drop-shadow">You</span><span className="text-black">And</span><span className="text-white drop-shadow">Me</span></div>
           <div className="flex items-center gap-1.5 text-[11px] text-white/70">
             <span className={`h-2 w-2 rounded-full ${otherOnline ? "bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400/70" : "bg-white/30"}`} />
             <span className="truncate">
