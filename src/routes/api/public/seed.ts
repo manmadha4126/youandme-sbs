@@ -15,7 +15,7 @@ export const Route = createFileRoute("/api/public/seed")({
         const { data: list } = await supabaseAdmin.auth.admin.listUsers();
         for (const u of USERS) {
           const email = `${u.username}@youandme.app`;
-          const password = u.username; // password matches the username
+          const password = u.password;
           const existing = list?.users.find((x) => x.email === email);
           let userId = existing?.id;
           if (!existing) {
