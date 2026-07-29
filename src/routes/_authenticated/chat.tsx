@@ -869,10 +869,31 @@ function MessageBubble({
               })}
             </div>
           )}
-          {m.body && (
+          {m.body && !editing && (
             <p className={`whitespace-pre-wrap break-words px-4 py-2 text-[15px] leading-snug ${imgs.length > 0 ? "pt-2" : ""}`}>
               {m.body}
             </p>
+          )}
+          {editing && (
+            <div className="px-2 py-2">
+              <textarea
+                autoFocus
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                rows={2}
+                className="w-full resize-none rounded-2xl border border-white/25 bg-white/15 px-3 py-2 text-[15px] text-white placeholder-white/50 outline-none focus:border-white/50"
+              />
+              <div className="mt-1 flex justify-end gap-2">
+                <button
+                  onClick={() => { setEditing(false); setEditText(m.body ?? ""); }}
+                  className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/90 hover:bg-white/20"
+                >Cancel</button>
+                <button
+                  onClick={() => { onEdit(editText); setEditing(false); }}
+                  className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-black hover:opacity-90"
+                >Save</button>
+              </div>
+            </div>
           )}
           <div className={`flex items-center justify-end gap-1 px-3 pb-2 pt-0.5 text-[10px] ${mine ? "text-white/80" : "text-white/50"}`}>
             <span>{formatTime(m.created_at)}</span>
