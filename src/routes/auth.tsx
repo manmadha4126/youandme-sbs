@@ -121,7 +121,7 @@ function AuthPage() {
                 }
               }}
             >
-              {u.label}
+              <span className="inline-flex items-center justify-center"><u.Icon size={28} strokeWidth={2.5} /></span>
             </button>
           ))}
         </div>
