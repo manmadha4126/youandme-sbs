@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 const USERS = [
-  { username: "manmadha", display_name: "Manmadha" },
-  { username: "likhitha", display_name: "Likhitha" },
+  { username: "manmadha", display_name: "Manmadha", password: "8074666415" },
+  { username: "likhitha", display_name: "Likhitha", password: "7674885189" },
 ];
 
 export const Route = createFileRoute("/api/public/seed")({
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/api/public/seed")({
         const { data: list } = await supabaseAdmin.auth.admin.listUsers();
         for (const u of USERS) {
           const email = `${u.username}@youandme.app`;
-          const password = u.username; // password matches the username
+          const password = u.password;
           const existing = list?.users.find((x) => x.email === email);
           let userId = existing?.id;
           if (!existing) {
