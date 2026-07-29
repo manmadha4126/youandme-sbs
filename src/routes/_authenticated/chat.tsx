@@ -481,10 +481,13 @@ function ChatPage() {
 
         {otherTyping && (
           <div className="flex justify-start">
-            <div className="glass flex items-center gap-1 rounded-full px-4 py-2.5">
-              {[0, 1, 2].map((i) => (
-                <span key={i} className="inline-block h-1.5 w-1.5 rounded-full bg-white/70" style={{ animation: `typing-bounce 1.2s ${i * 0.15}s infinite` }} />
-              ))}
+            <div className="glass flex items-center gap-2 rounded-full px-4 py-2 text-xs font-medium text-white/90">
+              <span>typing</span>
+              <span className="inline-flex gap-0.5">
+                {[0, 1, 2].map((i) => (
+                  <span key={i} className="inline-block h-1 w-1 rounded-full bg-white/80" style={{ animation: `typing-bounce 1.2s ${i * 0.15}s infinite` }} />
+                ))}
+              </span>
             </div>
           </div>
         )}
