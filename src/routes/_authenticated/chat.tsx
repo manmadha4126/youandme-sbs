@@ -479,6 +479,7 @@ function ChatPage() {
                   onDelete={() => deleteMessage(m.id)}
                   onCopy={() => m.body && copyText(m.body)}
                   onReply={() => { setReplyTo(m); textareaRef.current?.focus(); }}
+                  onEdit={(nb) => editMessage(m.id, nb)}
                 />
               );
             })}
