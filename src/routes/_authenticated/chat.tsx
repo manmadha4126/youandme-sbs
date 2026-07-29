@@ -305,6 +305,12 @@ function ChatPage() {
     await supabase.from("messages").delete().eq("id", id);
   }
 
+  async function editMessage(id: string, newBody: string) {
+    const body = newBody.trim();
+    if (!body) return;
+    await supabase.from("messages").update({ body }).eq("id", id);
+  }
+
   async function copyText(t: string) {
     try { await navigator.clipboard.writeText(t); } catch {}
   }
