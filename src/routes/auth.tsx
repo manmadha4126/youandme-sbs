@@ -14,9 +14,9 @@ function isSafeNext(next: string): boolean {
   return next.startsWith("/") && !next.startsWith("//");
 }
 
-const USERS = [
-  { username: "manmadha", label: "M" },
-  { username: "likhitha", label: "L" },
+const USERS: { username: string; Icon: typeof Mars }[] = [
+  { username: "manmadha", Icon: Mars },
+  { username: "likhitha", Icon: Venus },
 ];
 
 function toEmail(username: string) {
