@@ -157,6 +157,7 @@ function ChatPage() {
         if (row && row.user_id !== userId) {
           const diff = Date.now() - new Date(row.last_seen).getTime();
           setOtherOnline(diff < 60_000);
+          setOtherLastSeen(row.last_seen);
         }
       })
       .subscribe();
@@ -164,7 +165,10 @@ function ChatPage() {
     // Initial presence + typing status
     supabase.from("presence").select("*").then(({ data }) => {
       const other = data?.find((p) => p.user_id !== userId);
-      if (other) setOtherOnline(Date.now() - new Date(other.last_seen).getTime() < 60_000);
+      if (other) {
+        setOtherOnline(Date.now() - new Date(other.last_seen).getTime() < 60_000);
+        setOtherLastSeen(other.last_seen);
+      }
     });
     supabase.from("typing_status").select("*").then(({ data }) => {
       const other = data?.find((t) => t.user_id !== userId);
