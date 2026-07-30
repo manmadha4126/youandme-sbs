@@ -1,8 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+// Supabase requires >= 6 chars, so the 4-digit PIN is expanded server-side.
+export function toPassword(pin: string) {
+  return `ym-${pin}`;
+}
+
 const USERS = [
-  { username: "manmadha", display_name: "Manmadha", password: "8074666415" },
-  { username: "likhitha", display_name: "Likhitha", password: "7674885189" },
+  { username: "manmadha", display_name: "Manmadha", pin: "6415" },
+  { username: "likhitha", display_name: "Likhitha", pin: "5189" },
 ];
 
 export const Route = createFileRoute("/api/public/seed")({
@@ -15,7 +20,7 @@ export const Route = createFileRoute("/api/public/seed")({
         const { data: list } = await supabaseAdmin.auth.admin.listUsers();
         for (const u of USERS) {
           const email = `${u.username}@youandme.app`;
-          const password = u.password;
+          const password = toPassword(u.pin);
           const existing = list?.users.find((x) => x.email === email);
           let userId = existing?.id;
           if (!existing) {
