@@ -193,6 +193,23 @@ function ChatPage() {
     };
   }, [userId]);
 
+  // Keep identity refs in sync + ask Manmadha for notification permission
+  useEffect(() => {
+    if (!userId) return;
+    const me = profiles[userId];
+    const other = Object.values(profiles).find((p) => p.id !== userId);
+    meUsernameRef.current = me?.username ?? null;
+    otherNameRef.current = other?.display_name ?? "";
+    if (
+      me?.username === "manmadha" &&
+      typeof window !== "undefined" &&
+      "Notification" in window &&
+      Notification.permission === "default"
+    ) {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, [profiles, userId]);
+
   // Auto-scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
