@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Mars, Venus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/auth")({
@@ -14,9 +14,9 @@ function isSafeNext(next: string): boolean {
   return next.startsWith("/") && !next.startsWith("//");
 }
 
-const USERS: { username: string; Icon: typeof Mars }[] = [
-  { username: "manmadha", Icon: Mars },
-  { username: "likhitha", Icon: Venus },
+const USERS: { username: string; emoji: string }[] = [
+  { username: "manmadha", emoji: "👨" },
+  { username: "likhitha", emoji: "👩" },
 ];
 
 function toEmail(username: string) {
@@ -126,7 +126,7 @@ function AuthPage() {
                 }
               }}
             >
-              <span className="inline-flex items-center justify-center"><u.Icon size={28} strokeWidth={2.5} /></span>
+              <span className="inline-flex items-center justify-center text-3xl leading-none">{u.emoji}</span>
             </button>
           ))}
         </div>
