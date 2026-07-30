@@ -23,6 +23,11 @@ function toEmail(username: string) {
   return `${username}@youandme.app`;
 }
 
+// The UI asks for a 4-digit code; the stored password is derived from it.
+function toPassword(pin: string) {
+  return `ym-${pin.trim()}`;
+}
+
 function AuthPage() {
   const navigate = useNavigate();
   const { next } = Route.useSearch();
@@ -53,10 +58,10 @@ function AuthPage() {
     setLoading(true);
     setError(null);
     const email = toEmail(selected);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email, password: toPassword(password) });
     setLoading(false);
     if (error) {
-      setError("Wrong password. Try again.");
+      setError("Wrong code. Try again.");
       return;
     }
     goPostLogin();
@@ -126,22 +131,25 @@ function AuthPage() {
           ))}
         </div>
 
-        <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-black">Password</label>
+        <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-black">4-digit code</label>
         <input
           type="password"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={4}
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
+          onChange={(e) => setPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
+          placeholder="••••"
           autoComplete="current-password"
           required
-          className="w-full rounded-2xl border border-white/25 bg-white/10 px-4 py-3 text-base text-white placeholder-white/50 outline-none transition focus:border-white/60 focus:bg-white/20"
+          className="w-full rounded-2xl border border-white/25 bg-white/10 px-4 py-3 text-center text-lg tracking-[0.5em] text-white placeholder-white/50 outline-none transition focus:border-white/60 focus:bg-white/20"
         />
 
         {error && <p className="mt-3 text-sm text-[oklch(0.35_0.2_25)]">{error}</p>}
 
         <button
           type="submit"
-          disabled={loading || !password}
+          disabled={loading || password.length !== 4}
           className="mt-6 flex w-full items-center justify-center rounded-full py-3.5 text-base font-semibold text-white shadow-[var(--shadow-glow)] transition-all hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
           style={{ backgroundImage: "var(--gradient-bubble)" }}
         >

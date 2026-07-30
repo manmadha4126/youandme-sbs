@@ -40,6 +40,12 @@ function formatDay(d: string) {
   if (isYesterday(date)) return "Yesterday";
   return format(date, "EEEE, MMM d");
 }
+function formatLastSeen(d: string) {
+  const date = new Date(d);
+  if (isToday(date)) return `today at ${format(date, "h:mm a")}`;
+  if (isYesterday(date)) return `yesterday at ${format(date, "h:mm a")}`;
+  return format(date, "MMM d, h:mm a");
+}
 
 function ChatPage() {
   const navigate = useNavigate();
@@ -61,6 +67,9 @@ function ChatPage() {
   const [kbInset, setKbInset] = useState(0);
   const [callState, setCallState] = useState<CallState>({ status: "idle" });
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [otherLastSeen, setOtherLastSeen] = useState<string | null>(null);
+  const meUsernameRef = useRef<string | null>(null);
+  const otherNameRef = useRef<string>("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -98,12 +107,31 @@ function ChatPage() {
     const msgChannel = supabase
       .channel("messages-live")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        const next = payload.new as Message;
         setMessages((prev) => {
-          const next = payload.new as Message;
           if (prev.some((m) => m.id === next.id)) return prev;
           return [...prev, next];
         });
+        // Notify Manmadha when Likhitha sends a message and the app isn't in view.
+        if (
+          next.sender_id !== userId &&
+          meUsernameRef.current === "manmadha" &&
+          typeof window !== "undefined" &&
+          "Notification" in window &&
+          Notification.permission === "granted" &&
+          document.visibilityState !== "visible"
+        ) {
+          try {
+            const n = new Notification(otherNameRef.current || "New message", {
+              body: next.body || (next.image_urls?.length ? "📷 Photo" : "New message"),
+              icon: "/favicon.ico",
+              tag: "youandme-message",
+            });
+            n.onclick = () => { window.focus(); n.close(); };
+          } catch { /* ignore */ }
+        }
       })
+
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
         const next = payload.new as Message;
         setMessages((prev) => prev.map((m) => (m.id === next.id ? next : m)));
@@ -129,6 +157,7 @@ function ChatPage() {
         if (row && row.user_id !== userId) {
           const diff = Date.now() - new Date(row.last_seen).getTime();
           setOtherOnline(diff < 60_000);
+          setOtherLastSeen(row.last_seen);
         }
       })
       .subscribe();
@@ -136,7 +165,10 @@ function ChatPage() {
     // Initial presence + typing status
     supabase.from("presence").select("*").then(({ data }) => {
       const other = data?.find((p) => p.user_id !== userId);
-      if (other) setOtherOnline(Date.now() - new Date(other.last_seen).getTime() < 60_000);
+      if (other) {
+        setOtherOnline(Date.now() - new Date(other.last_seen).getTime() < 60_000);
+        setOtherLastSeen(other.last_seen);
+      }
     });
     supabase.from("typing_status").select("*").then(({ data }) => {
       const other = data?.find((t) => t.user_id !== userId);
@@ -160,6 +192,23 @@ function ChatPage() {
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [userId]);
+
+  // Keep identity refs in sync + ask Manmadha for notification permission
+  useEffect(() => {
+    if (!userId) return;
+    const me = profiles[userId];
+    const other = Object.values(profiles).find((p) => p.id !== userId);
+    meUsernameRef.current = me?.username ?? null;
+    otherNameRef.current = other?.display_name ?? "";
+    if (
+      me?.username === "manmadha" &&
+      typeof window !== "undefined" &&
+      "Notification" in window &&
+      Notification.permission === "default"
+    ) {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, [profiles, userId]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -331,7 +380,7 @@ function ChatPage() {
         height: "100dvh",
         paddingTop: "env(safe-area-inset-top)",
         paddingBottom: `calc(env(safe-area-inset-bottom) + ${kbInset}px)`,
-        background: "linear-gradient(180deg, #87ceeb 0%, #b6e1f4 35%, #e8eef5 70%, #f8f6f0 100%)",
+        background: "linear-gradient(180deg, #4facfe 0%, #4facfe 42%, #9fd8f7 62%, #d9eefb 80%, #f7f5ef 100%)",
       }}
     >
       {/* Ambient glow */}
@@ -350,24 +399,27 @@ function ChatPage() {
         >
           <ArrowLeft size={22} strokeWidth={2.5} />
         </button>
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-lg font-semibold shadow-[var(--shadow-glow)]" style={{ backgroundImage: "var(--gradient-bubble)" }}>
-          {otherProfile?.display_name?.[0] ?? "•"}
-        </div>
         <div className="min-w-0 flex-1">
-          <div className="truncate font-kameron text-2xl font-bold leading-tight"><span className="text-white drop-shadow">You</span><span className="text-black">And</span><span className="text-white drop-shadow">Me</span></div>
-          <div className="flex items-center gap-1.5 text-[11px] text-white/70">
-            <span className={`h-2 w-2 rounded-full ${otherOnline ? "bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400/70" : "bg-white/30"}`} />
-            <span className="truncate">
+          <div className="font-kameron text-lg font-bold leading-tight"><span className="text-white drop-shadow">You</span><span className="text-black">And</span><span className="text-white drop-shadow">Me</span></div>
+          <div className="flex items-center gap-1.5 text-[11px] leading-snug text-white/70">
+            <span className={`h-2 w-2 shrink-0 rounded-full ${otherOnline ? "bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400/70" : "bg-white/30"}`} />
+            <span className="whitespace-normal break-words">
               {otherProfile ? (
                 <>
                   <span className="font-semibold text-white">{otherProfile.display_name}</span>
-                  <span className="text-white/60"> is {otherOnline ? (otherTyping ? "typing…" : "online") : "offline"}</span>
+                  <span className="text-white/80">
+                    {" "}is {otherOnline ? (otherTyping ? "typing…" : "online") : "offline"}
+                  </span>
+                  {!otherOnline && otherLastSeen && (
+                    <span className="text-white/70"> · last seen {formatLastSeen(otherLastSeen)}</span>
+                  )}
                 </>
               ) : (
-                <span className="text-white/60">{otherOnline ? "online" : "offline"}</span>
+                <span className="text-white/70">{otherOnline ? "online" : "offline"}</span>
               )}
             </span>
           </div>
+
         </div>
         <button
           aria-label="Voice call"
