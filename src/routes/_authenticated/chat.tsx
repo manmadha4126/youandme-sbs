@@ -107,12 +107,31 @@ function ChatPage() {
     const msgChannel = supabase
       .channel("messages-live")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        const next = payload.new as Message;
         setMessages((prev) => {
-          const next = payload.new as Message;
           if (prev.some((m) => m.id === next.id)) return prev;
           return [...prev, next];
         });
+        // Notify Manmadha when Likhitha sends a message and the app isn't in view.
+        if (
+          next.sender_id !== userId &&
+          meUsernameRef.current === "manmadha" &&
+          typeof window !== "undefined" &&
+          "Notification" in window &&
+          Notification.permission === "granted" &&
+          document.visibilityState !== "visible"
+        ) {
+          try {
+            const n = new Notification(otherNameRef.current || "New message", {
+              body: next.body || (next.image_urls?.length ? "📷 Photo" : "New message"),
+              icon: "/favicon.ico",
+              tag: "youandme-message",
+            });
+            n.onclick = () => { window.focus(); n.close(); };
+          } catch { /* ignore */ }
+        }
       })
+
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
         const next = payload.new as Message;
         setMessages((prev) => prev.map((m) => (m.id === next.id ? next : m)));
