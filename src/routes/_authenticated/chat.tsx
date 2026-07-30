@@ -210,8 +210,17 @@ function ChatPage() {
     }
   }, [profiles, userId]);
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom on new messages (instant jump on first load)
+  const didInitialScroll = useRef(false);
   useEffect(() => {
+    if (!messages.length) return;
+    if (!didInitialScroll.current) {
+      didInitialScroll.current = true;
+      bottomRef.current?.scrollIntoView({ block: "end" });
+      requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ block: "end" }));
+      setTimeout(() => bottomRef.current?.scrollIntoView({ block: "end" }), 150);
+      return;
+    }
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, otherTyping]);
 
