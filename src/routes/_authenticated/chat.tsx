@@ -350,24 +350,27 @@ function ChatPage() {
         >
           <ArrowLeft size={22} strokeWidth={2.5} />
         </button>
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-lg font-semibold shadow-[var(--shadow-glow)]" style={{ backgroundImage: "var(--gradient-bubble)" }}>
-          {otherProfile?.display_name?.[0] ?? "•"}
-        </div>
         <div className="min-w-0 flex-1">
-          <div className="truncate font-kameron text-2xl font-bold leading-tight"><span className="text-white drop-shadow">You</span><span className="text-black">And</span><span className="text-white drop-shadow">Me</span></div>
-          <div className="flex items-center gap-1.5 text-[11px] text-white/70">
-            <span className={`h-2 w-2 rounded-full ${otherOnline ? "bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400/70" : "bg-white/30"}`} />
-            <span className="truncate">
+          <div className="font-kameron text-lg font-bold leading-tight"><span className="text-white drop-shadow">You</span><span className="text-black">And</span><span className="text-white drop-shadow">Me</span></div>
+          <div className="flex items-center gap-1.5 text-[11px] leading-snug text-white/70">
+            <span className={`h-2 w-2 shrink-0 rounded-full ${otherOnline ? "bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400/70" : "bg-white/30"}`} />
+            <span className="whitespace-normal break-words">
               {otherProfile ? (
                 <>
                   <span className="font-semibold text-white">{otherProfile.display_name}</span>
-                  <span className="text-white/60"> is {otherOnline ? (otherTyping ? "typing…" : "online") : "offline"}</span>
+                  <span className="text-white/80">
+                    {" "}is {otherOnline ? (otherTyping ? "typing…" : "online") : "offline"}
+                  </span>
+                  {!otherOnline && otherLastSeen && (
+                    <span className="text-white/70"> · last seen {formatLastSeen(otherLastSeen)}</span>
+                  )}
                 </>
               ) : (
-                <span className="text-white/60">{otherOnline ? "online" : "offline"}</span>
+                <span className="text-white/70">{otherOnline ? "online" : "offline"}</span>
               )}
             </span>
           </div>
+
         </div>
         <button
           aria-label="Voice call"
