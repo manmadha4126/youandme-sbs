@@ -210,8 +210,17 @@ function ChatPage() {
     }
   }, [profiles, userId]);
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom on new messages (instant jump on first load)
+  const didInitialScroll = useRef(false);
   useEffect(() => {
+    if (!messages.length) return;
+    if (!didInitialScroll.current) {
+      didInitialScroll.current = true;
+      bottomRef.current?.scrollIntoView({ block: "end" });
+      requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ block: "end" }));
+      setTimeout(() => bottomRef.current?.scrollIntoView({ block: "end" }), 150);
+      return;
+    }
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, otherTyping]);
 
@@ -402,7 +411,7 @@ function ChatPage() {
         <div className="min-w-0 flex-1">
           <div className="font-kameron text-lg font-bold leading-tight"><span className="text-white drop-shadow">You</span><span className="text-black">And</span><span className="text-white drop-shadow">Me</span></div>
           <div className="flex items-center gap-1.5 text-[11px] leading-snug text-white/70">
-            <span className={`h-2 w-2 shrink-0 rounded-full ${otherOnline ? "bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400/70" : "bg-white/30"}`} />
+            <span className={`h-3.5 w-3.5 shrink-0 rounded-full ${otherOnline ? "bg-emerald-400 shadow-[0_0_10px] shadow-emerald-400/80" : "bg-white/30"}`} />
             <span className="whitespace-normal break-words">
               {otherProfile ? (
                 <>
@@ -732,12 +741,13 @@ function ChatPage() {
           onClick={sendMessage}
           disabled={uploading || (!text.trim() && pendingImages.length === 0)}
           aria-label="Send"
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white text-black shadow-[var(--shadow-glow)] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+          className="grid h-12 w-12 shrink-0 place-items-center self-end rounded-full border border-white/20 text-white shadow-[var(--shadow-glow)] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+          style={{ backgroundImage: "linear-gradient(90deg, #0d5c63 0%, #3d1f6b 50%, #0d5c63 100%)" }}
         >
           {uploading ? (
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black" />
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
           ) : (
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
           )}
         </button>
       </div>
