@@ -331,7 +331,7 @@ function ChatPage() {
         height: "100dvh",
         paddingTop: "env(safe-area-inset-top)",
         paddingBottom: `calc(env(safe-area-inset-bottom) + ${kbInset}px)`,
-        background: "linear-gradient(180deg, #87ceeb 0%, #b6e1f4 35%, #e8eef5 70%, #f8f6f0 100%)",
+        background: "linear-gradient(180deg, #4facfe 0%, #4facfe 42%, #9fd8f7 62%, #d9eefb 80%, #f7f5ef 100%)",
       }}
     >
       {/* Ambient glow */}
