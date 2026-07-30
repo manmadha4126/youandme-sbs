@@ -40,6 +40,12 @@ function formatDay(d: string) {
   if (isYesterday(date)) return "Yesterday";
   return format(date, "EEEE, MMM d");
 }
+function formatLastSeen(d: string) {
+  const date = new Date(d);
+  if (isToday(date)) return `today at ${format(date, "h:mm a")}`;
+  if (isYesterday(date)) return `yesterday at ${format(date, "h:mm a")}`;
+  return format(date, "MMM d, h:mm a");
+}
 
 function ChatPage() {
   const navigate = useNavigate();
