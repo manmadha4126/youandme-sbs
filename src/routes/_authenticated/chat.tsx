@@ -114,24 +114,14 @@ function ChatPage() {
           return [...prev, next];
         });
         // Notify Manmadha when Likhitha sends a message and the app isn't in view.
-        if (
-          next.sender_id !== userId &&
-          meUsernameRef.current === "manmadha" &&
-          typeof window !== "undefined" &&
-          "Notification" in window &&
-          Notification.permission === "granted" &&
-          document.visibilityState !== "visible"
-        ) {
-          try {
-            const n = new Notification(otherNameRef.current || "New message", {
-              body: next.body || (next.image_urls?.length ? "📷 Photo" : "New message"),
-              icon: "/favicon.ico",
-              tag: "youandme-message",
-            });
-            n.onclick = () => { window.focus(); n.close(); };
-          } catch { /* ignore */ }
+        if (next.sender_id !== userId && meUsernameRef.current === "manmadha") {
+          notify(
+            otherNameRef.current || "New message",
+            next.body || (next.image_urls?.length ? "📷 Photo" : "New message"),
+          );
         }
       })
+
 
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
         const next = payload.new as Message;
