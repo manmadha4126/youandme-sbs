@@ -439,6 +439,9 @@ function ChatPage() {
     return Object.values(profiles).find((p) => p.id !== userId);
   }, [profiles, userId]);
 
+  const meUsername = userId ? profiles[userId]?.username : undefined;
+
+
   return (
     <div
       className="relative flex flex-col overflow-hidden"
