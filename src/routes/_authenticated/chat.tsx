@@ -48,6 +48,34 @@ function formatLastSeen(d: string) {
   return format(date, "MMM d, h:mm a");
 }
 
+// Notifications: use the service worker when available (required on Android/mobile),
+// fall back to the plain Notification constructor on desktop.
+async function notify(title: string, body: string) {
+  if (typeof window === "undefined" || !("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+  // Only alert when the app isn't actually being looked at.
+  if (document.visibilityState === "visible" && document.hasFocus()) return;
+  const options: NotificationOptions = {
+    body,
+    icon: "/favicon.ico",
+    badge: "/favicon.ico",
+    tag: "youandme-message",
+  };
+  try {
+    if ("serviceWorker" in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, options);
+      return;
+    }
+  } catch { /* fall through */ }
+  try {
+    const n = new Notification(title, options);
+    n.onclick = () => { window.focus(); n.close(); };
+  } catch { /* ignore */ }
+}
+
+
+
 function ChatPage() {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
