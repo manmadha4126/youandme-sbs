@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Phone, Video, MoreVertical } from "lucide-react";
+import { ArrowLeft, Phone, Video, MoreVertical, BellRing } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { CallOverlay, type CallState } from "@/components/CallOverlay";
 
@@ -48,6 +48,34 @@ function formatLastSeen(d: string) {
   return format(date, "MMM d, h:mm a");
 }
 
+// Notifications: use the service worker when available (required on Android/mobile),
+// fall back to the plain Notification constructor on desktop.
+async function notify(title: string, body: string) {
+  if (typeof window === "undefined" || !("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+  // Only alert when the app isn't actually being looked at.
+  if (document.visibilityState === "visible" && document.hasFocus()) return;
+  const options: NotificationOptions = {
+    body,
+    icon: "/favicon.ico",
+    badge: "/favicon.ico",
+    tag: "youandme-message",
+  };
+  try {
+    if ("serviceWorker" in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, options);
+      return;
+    }
+  } catch { /* fall through */ }
+  try {
+    const n = new Notification(title, options);
+    n.onclick = () => { window.focus(); n.close(); };
+  } catch { /* ignore */ }
+}
+
+
+
 function ChatPage() {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
@@ -69,8 +97,11 @@ function ChatPage() {
   const [callState, setCallState] = useState<CallState>({ status: "idle" });
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [otherLastSeen, setOtherLastSeen] = useState<string | null>(null);
+  const [notifPerm, setNotifPerm] = useState<string>("default");
+  const otherLastSeenRef = useRef<string | null>(null);
   const meUsernameRef = useRef<string | null>(null);
   const otherNameRef = useRef<string>("");
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -114,24 +145,14 @@ function ChatPage() {
           return [...prev, next];
         });
         // Notify Manmadha when Likhitha sends a message and the app isn't in view.
-        if (
-          next.sender_id !== userId &&
-          meUsernameRef.current === "manmadha" &&
-          typeof window !== "undefined" &&
-          "Notification" in window &&
-          Notification.permission === "granted" &&
-          document.visibilityState !== "visible"
-        ) {
-          try {
-            const n = new Notification(otherNameRef.current || "New message", {
-              body: next.body || (next.image_urls?.length ? "📷 Photo" : "New message"),
-              icon: "/favicon.ico",
-              tag: "youandme-message",
-            });
-            n.onclick = () => { window.focus(); n.close(); };
-          } catch { /* ignore */ }
+        if (next.sender_id !== userId && meUsernameRef.current === "manmadha") {
+          notify(
+            otherNameRef.current || "New message",
+            next.body || (next.image_urls?.length ? "📷 Photo" : "New message"),
+          );
         }
       })
+
 
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
         const next = payload.new as Message;
@@ -154,10 +175,10 @@ function ChatPage() {
     const presenceChannel = supabase
       .channel("presence-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "presence" }, (payload) => {
-        const row = payload.new as { user_id: string; last_seen: string };
+        const row = payload.new as { user_id: string; last_seen: string; is_online?: boolean };
         if (row && row.user_id !== userId) {
-          const diff = Date.now() - new Date(row.last_seen).getTime();
-          setOtherOnline(diff < 60_000);
+          const fresh = Date.now() - new Date(row.last_seen).getTime() < 45_000;
+          setOtherOnline(Boolean(row.is_online) && fresh);
           setOtherLastSeen(row.last_seen);
         }
       })
@@ -165,9 +186,12 @@ function ChatPage() {
 
     // Initial presence + typing status
     supabase.from("presence").select("*").then(({ data }) => {
-      const other = data?.find((p) => p.user_id !== userId);
+      const other = data?.find((p) => p.user_id !== userId) as
+        | { last_seen: string; is_online?: boolean }
+        | undefined;
       if (other) {
-        setOtherOnline(Date.now() - new Date(other.last_seen).getTime() < 60_000);
+        const fresh = Date.now() - new Date(other.last_seen).getTime() < 45_000;
+        setOtherOnline(Boolean(other.is_online) && fresh);
         setOtherLastSeen(other.last_seen);
       }
     });
@@ -176,40 +200,56 @@ function ChatPage() {
       if (other) setOtherTyping(other.is_typing);
     });
 
-    // Heartbeat my presence every 20s
-    const beat = async () => {
-      await supabase.from("presence").upsert({ user_id: userId, last_seen: new Date().toISOString() });
+    // Heartbeat: I'm "online" only while the chat page is open AND visible.
+    const beat = async (online: boolean) => {
+      await supabase
+        .from("presence")
+        .upsert({ user_id: userId, last_seen: new Date().toISOString(), is_online: online } as never);
     };
-    beat();
-    const interval = setInterval(beat, 20_000);
-    const onVisible = () => beat();
+    beat(document.visibilityState === "visible");
+    const interval = setInterval(() => beat(document.visibilityState === "visible"), 15_000);
+    const onVisible = () => beat(document.visibilityState === "visible");
+    const goOffline = () => { void beat(false); };
     document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pagehide", goOffline);
+
+    // Re-evaluate the other person's freshness locally so "online" expires on its own.
+    const staleCheck = setInterval(() => {
+      setOtherOnline((prev) => {
+        if (!prev) return prev;
+        const ls = otherLastSeenRef.current;
+        if (!ls) return prev;
+        return Date.now() - new Date(ls).getTime() < 45_000;
+      });
+    }, 10_000);
 
     return () => {
+      void beat(false);
       supabase.removeChannel(msgChannel);
       supabase.removeChannel(typingChannel);
       supabase.removeChannel(presenceChannel);
       clearInterval(interval);
+      clearInterval(staleCheck);
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pagehide", goOffline);
     };
   }, [userId]);
 
-  // Keep identity refs in sync + ask Manmadha for notification permission
+  // Keep identity refs in sync + register the service worker for notifications
   useEffect(() => {
     if (!userId) return;
     const me = profiles[userId];
     const other = Object.values(profiles).find((p) => p.id !== userId);
     meUsernameRef.current = me?.username ?? null;
     otherNameRef.current = other?.display_name ?? "";
-    if (
-      me?.username === "manmadha" &&
-      typeof window !== "undefined" &&
-      "Notification" in window &&
-      Notification.permission === "default"
-    ) {
-      Notification.requestPermission().catch(() => {});
+    if (me?.username === "manmadha" && typeof window !== "undefined") {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      }
+      if ("Notification" in window) setNotifPerm(Notification.permission);
     }
   }, [profiles, userId]);
+
 
   // Auto-scroll to bottom on new messages (instant jump on first load)
   const didInitialScroll = useRef(false);
@@ -255,17 +295,33 @@ function ChatPage() {
     return () => document.removeEventListener("click", onClick);
   }, [showMobileMenu]);
 
-  // Mark received messages as read
+  // Keep last-seen ref in sync for the staleness check
+  useEffect(() => { otherLastSeenRef.current = otherLastSeen; }, [otherLastSeen]);
+
+  // Mark received messages as read — only while the chat is actually being viewed
   useEffect(() => {
     if (!userId) return;
-    const unread = messages.filter((m) => m.sender_id !== userId && !m.read_at);
-    if (unread.length === 0) return;
-    supabase
-      .from("messages")
-      .update({ read_at: new Date().toISOString() })
-      .in("id", unread.map((m) => m.id))
-      .then(() => {});
+
+    const markRead = () => {
+      if (document.visibilityState !== "visible" || !document.hasFocus()) return;
+      const unread = messages.filter((m) => m.sender_id !== userId && !m.read_at);
+      if (unread.length === 0) return;
+      supabase
+        .from("messages")
+        .update({ read_at: new Date().toISOString() })
+        .in("id", unread.map((m) => m.id))
+        .then(() => {});
+    };
+
+    markRead();
+    window.addEventListener("focus", markRead);
+    document.addEventListener("visibilitychange", markRead);
+    return () => {
+      window.removeEventListener("focus", markRead);
+      document.removeEventListener("visibilitychange", markRead);
+    };
   }, [messages, userId]);
+
 
   // Sign URLs for images (private bucket)
   useEffect(() => {
@@ -383,6 +439,9 @@ function ChatPage() {
     return Object.values(profiles).find((p) => p.id !== userId);
   }, [profiles, userId]);
 
+  const meUsername = userId ? profiles[userId]?.username : undefined;
+
+
   return (
     <div
       className="relative flex flex-col overflow-hidden"
@@ -445,7 +504,23 @@ function ChatPage() {
         >
           <Video size={18} />
         </button>
+        {meUsername === "manmadha" && notifPerm !== "granted" && (
+          <button
+            aria-label="Enable message alerts"
+            onClick={async () => {
+              try {
+                if ("serviceWorker" in navigator) await navigator.serviceWorker.register("/sw.js");
+                const p = await Notification.requestPermission();
+                setNotifPerm(p);
+              } catch { /* ignore */ }
+            }}
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-400 text-black shadow-lg animate-pulse active:scale-95"
+          >
+            <BellRing size={18} />
+          </button>
+        )}
         <button aria-label="Search" onClick={() => { if (showSearch) setSearch(""); setShowSearch((v) => !v); }} className="hidden sm:grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/80 hover:bg-white/10">
+
           <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
         </button>
         <button onClick={signOut} className="hidden sm:inline-flex shrink-0 rounded-full bg-white/5 px-4 py-2 text-sm font-medium text-white/90 hover:bg-white/10">
