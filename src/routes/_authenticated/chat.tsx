@@ -997,12 +997,13 @@ function MessageBubble({
             </div>
           </>
         )}
-        {showDetails && (
-          <>
-            <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setShowDetails(false)} />
-            <div className="fixed left-1/2 top-1/2 z-50 w-[88%] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-white/15 bg-[#1a2d5c]/95 p-5 text-white shadow-2xl">
+        {showDetails && typeof document !== "undefined" && createPortal(
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/70" onClick={() => setShowDetails(false)} />
+            <div className="relative w-full max-w-sm rounded-3xl border border-white/10 bg-[#15171c] p-5 text-white shadow-2xl">
               <h3 className="mb-3 text-base font-semibold">Message details</h3>
               <dl className="space-y-2 text-sm">
+                <div className="flex justify-between gap-4"><dt className="text-white/60">From</dt><dd className="font-medium">{mine ? "You" : (parentAuthor && parent?.sender_id === m.sender_id ? parentAuthor : senderName ?? "Them")}</dd></div>
                 <div className="flex justify-between gap-4"><dt className="text-white/60">Sent</dt><dd>{format(new Date(m.created_at), "PPp")}</dd></div>
                 <div className="flex justify-between gap-4"><dt className="text-white/60">Status</dt><dd>{m.read_at ? "Read" : "Delivered"}</dd></div>
                 {m.read_at && (
@@ -1011,10 +1012,14 @@ function MessageBubble({
                 {m.image_urls?.length ? (
                   <div className="flex justify-between gap-4"><dt className="text-white/60">Images</dt><dd>{m.image_urls.length}</dd></div>
                 ) : null}
+                {m.body ? (
+                  <div className="pt-1"><dt className="mb-1 text-white/60">Message</dt><dd className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words rounded-xl bg-white/5 p-2 text-[13px]">{m.body}</dd></div>
+                ) : null}
               </dl>
               <button onClick={() => setShowDetails(false)} className="mt-4 w-full rounded-full bg-white py-2 text-sm font-semibold text-black">Close</button>
             </div>
-          </>
+          </div>,
+          document.body
         )}
       </div>
     </div>
