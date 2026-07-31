@@ -295,17 +295,33 @@ function ChatPage() {
     return () => document.removeEventListener("click", onClick);
   }, [showMobileMenu]);
 
-  // Mark received messages as read
+  // Keep last-seen ref in sync for the staleness check
+  useEffect(() => { otherLastSeenRef.current = otherLastSeen; }, [otherLastSeen]);
+
+  // Mark received messages as read — only while the chat is actually being viewed
   useEffect(() => {
     if (!userId) return;
-    const unread = messages.filter((m) => m.sender_id !== userId && !m.read_at);
-    if (unread.length === 0) return;
-    supabase
-      .from("messages")
-      .update({ read_at: new Date().toISOString() })
-      .in("id", unread.map((m) => m.id))
-      .then(() => {});
+
+    const markRead = () => {
+      if (document.visibilityState !== "visible" || !document.hasFocus()) return;
+      const unread = messages.filter((m) => m.sender_id !== userId && !m.read_at);
+      if (unread.length === 0) return;
+      supabase
+        .from("messages")
+        .update({ read_at: new Date().toISOString() })
+        .in("id", unread.map((m) => m.id))
+        .then(() => {});
+    };
+
+    markRead();
+    window.addEventListener("focus", markRead);
+    document.addEventListener("visibilitychange", markRead);
+    return () => {
+      window.removeEventListener("focus", markRead);
+      document.removeEventListener("visibilitychange", markRead);
+    };
   }, [messages, userId]);
+
 
   // Sign URLs for images (private bucket)
   useEffect(() => {
