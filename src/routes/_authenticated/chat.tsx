@@ -718,16 +718,16 @@ function ChatPage() {
           {showAttach && (
             <div className="sm:hidden">
               <div className="fixed inset-0 z-30" onClick={() => setShowAttach(false)} />
-              <div className="glass absolute bottom-full right-0 z-40 mb-2 flex min-w-[160px] flex-col overflow-hidden rounded-2xl border border-white/10 text-sm shadow-[var(--shadow-soft)]">
+              <div className="absolute bottom-full right-0 z-40 mb-2 flex min-w-[180px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-sm shadow-2xl">
                 <button
-                  className="flex items-center gap-3 px-4 py-3 text-left text-white/90 hover:bg-white/10"
+                  className="flex items-center gap-3 px-4 py-3 text-left font-medium text-slate-900 active:bg-slate-100"
                   onClick={() => { setShowAttach(false); cameraInputRef.current?.click(); }}
                 >
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                   Camera
                 </button>
                 <button
-                  className="flex items-center gap-3 px-4 py-3 text-left text-white/90 hover:bg-white/10"
+                  className="flex items-center gap-3 px-4 py-3 text-left font-medium text-slate-900 active:bg-slate-100"
                   onClick={() => { setShowAttach(false); fileInputRef.current?.click(); }}
                 >
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
@@ -741,8 +741,7 @@ function ChatPage() {
           onClick={sendMessage}
           disabled={uploading || (!text.trim() && pendingImages.length === 0)}
           aria-label="Send"
-          className="grid h-12 w-12 shrink-0 place-items-center self-end rounded-full border border-white/20 text-white shadow-[var(--shadow-glow)] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
-          style={{ backgroundImage: "linear-gradient(90deg, #0d5c63 0%, #3d1f6b 50%, #0d5c63 100%)" }}
+          className="grid h-12 w-12 shrink-0 place-items-center self-end rounded-full bg-[#25D366] text-white shadow-lg transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {uploading ? (
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
