@@ -504,7 +504,7 @@ function ChatPage() {
         >
           <Video size={18} />
         </button>
-        {meUsernameRef.current === "manmadha" && notifPerm !== "granted" && (
+        {meUsername === "manmadha" && notifPerm !== "granted" && (
           <button
             aria-label="Enable message alerts"
             onClick={async () => {
