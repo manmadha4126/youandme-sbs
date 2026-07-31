@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Phone, Video, MoreVertical } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
