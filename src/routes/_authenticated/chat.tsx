@@ -1004,7 +1004,7 @@ function MessageBubble({
             <div className="relative w-full max-w-sm rounded-3xl border border-white/10 bg-[#15171c] p-5 text-white shadow-2xl">
               <h3 className="mb-3 text-base font-semibold">Message details</h3>
               <dl className="space-y-2 text-sm">
-                <div className="flex justify-between gap-4"><dt className="text-white/60">From</dt><dd className="font-medium">{mine ? "You" : (parentAuthor && parent?.sender_id === m.sender_id ? parentAuthor : senderName ?? "Them")}</dd></div>
+                <div className="flex justify-between gap-4"><dt className="text-white/60">From</dt><dd className="font-medium">{mine ? "You" : "Them"}</dd></div>
                 <div className="flex justify-between gap-4"><dt className="text-white/60">Sent</dt><dd>{format(new Date(m.created_at), "PPp")}</dd></div>
                 <div className="flex justify-between gap-4"><dt className="text-white/60">Status</dt><dd>{m.read_at ? "Read" : "Delivered"}</dd></div>
                 {m.read_at && (
