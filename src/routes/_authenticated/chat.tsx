@@ -172,10 +172,10 @@ function ChatPage() {
     const presenceChannel = supabase
       .channel("presence-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "presence" }, (payload) => {
-        const row = payload.new as { user_id: string; last_seen: string };
+        const row = payload.new as { user_id: string; last_seen: string; is_online?: boolean };
         if (row && row.user_id !== userId) {
-          const diff = Date.now() - new Date(row.last_seen).getTime();
-          setOtherOnline(diff < 60_000);
+          const fresh = Date.now() - new Date(row.last_seen).getTime() < 45_000;
+          setOtherOnline(Boolean(row.is_online) && fresh);
           setOtherLastSeen(row.last_seen);
         }
       })
@@ -183,9 +183,12 @@ function ChatPage() {
 
     // Initial presence + typing status
     supabase.from("presence").select("*").then(({ data }) => {
-      const other = data?.find((p) => p.user_id !== userId);
+      const other = data?.find((p) => p.user_id !== userId) as
+        | { last_seen: string; is_online?: boolean }
+        | undefined;
       if (other) {
-        setOtherOnline(Date.now() - new Date(other.last_seen).getTime() < 60_000);
+        const fresh = Date.now() - new Date(other.last_seen).getTime() < 45_000;
+        setOtherOnline(Boolean(other.is_online) && fresh);
         setOtherLastSeen(other.last_seen);
       }
     });
@@ -194,40 +197,56 @@ function ChatPage() {
       if (other) setOtherTyping(other.is_typing);
     });
 
-    // Heartbeat my presence every 20s
-    const beat = async () => {
-      await supabase.from("presence").upsert({ user_id: userId, last_seen: new Date().toISOString() });
+    // Heartbeat: I'm "online" only while the chat page is open AND visible.
+    const beat = async (online: boolean) => {
+      await supabase
+        .from("presence")
+        .upsert({ user_id: userId, last_seen: new Date().toISOString(), is_online: online } as never);
     };
-    beat();
-    const interval = setInterval(beat, 20_000);
-    const onVisible = () => beat();
+    beat(document.visibilityState === "visible");
+    const interval = setInterval(() => beat(document.visibilityState === "visible"), 15_000);
+    const onVisible = () => beat(document.visibilityState === "visible");
+    const goOffline = () => { void beat(false); };
     document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pagehide", goOffline);
+
+    // Re-evaluate the other person's freshness locally so "online" expires on its own.
+    const staleCheck = setInterval(() => {
+      setOtherOnline((prev) => {
+        if (!prev) return prev;
+        const ls = otherLastSeenRef.current;
+        if (!ls) return prev;
+        return Date.now() - new Date(ls).getTime() < 45_000;
+      });
+    }, 10_000);
 
     return () => {
+      void beat(false);
       supabase.removeChannel(msgChannel);
       supabase.removeChannel(typingChannel);
       supabase.removeChannel(presenceChannel);
       clearInterval(interval);
+      clearInterval(staleCheck);
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pagehide", goOffline);
     };
   }, [userId]);
 
-  // Keep identity refs in sync + ask Manmadha for notification permission
+  // Keep identity refs in sync + register the service worker for notifications
   useEffect(() => {
     if (!userId) return;
     const me = profiles[userId];
     const other = Object.values(profiles).find((p) => p.id !== userId);
     meUsernameRef.current = me?.username ?? null;
     otherNameRef.current = other?.display_name ?? "";
-    if (
-      me?.username === "manmadha" &&
-      typeof window !== "undefined" &&
-      "Notification" in window &&
-      Notification.permission === "default"
-    ) {
-      Notification.requestPermission().catch(() => {});
+    if (me?.username === "manmadha" && typeof window !== "undefined") {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      }
+      if ("Notification" in window) setNotifPerm(Notification.permission);
     }
   }, [profiles, userId]);
+
 
   // Auto-scroll to bottom on new messages (instant jump on first load)
   const didInitialScroll = useRef(false);
