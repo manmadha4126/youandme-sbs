@@ -426,6 +426,88 @@ function ChatPage() {
     setUploading(false);
   }
 
+  // ---- Voice notes (WhatsApp-style) ----
+  function stopTracks() {
+    recStream.current?.getTracks().forEach((t) => t.stop());
+    recStream.current = null;
+    if (recTimer.current) { clearInterval(recTimer.current); recTimer.current = null; }
+  }
+
+  async function startRecording() {
+    if (recording) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recStream.current = stream;
+      const mime = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/aac"].find(
+        (t) => typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(t)
+      );
+      const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      recChunks.current = [];
+      recCancelled.current = false;
+      rec.ondataavailable = (e) => { if (e.data.size > 0) recChunks.current.push(e.data); };
+      rec.onstop = async () => {
+        const secs = recSecsRef.current;
+        const blob = new Blob(recChunks.current, { type: rec.mimeType || "audio/webm" });
+        stopTracks();
+        setRecording(false);
+        setRecSecs(0);
+        if (recCancelled.current || blob.size < 800 || secs < 1) return;
+        await sendVoice(blob, secs, rec.mimeType || "audio/webm");
+      };
+      rec.start(200);
+      recorderRef.current = rec;
+      setRecording(true);
+      setRecSecs(0);
+      recSecsRef.current = 0;
+      recTimer.current = setInterval(() => {
+        recSecsRef.current += 1;
+        setRecSecs(recSecsRef.current);
+      }, 1000);
+    } catch {
+      stopTracks();
+      setRecording(false);
+      alert("Microphone permission is needed to record a voice message.");
+    }
+  }
+
+  function cancelRecording() {
+    recCancelled.current = true;
+    try { recorderRef.current?.stop(); } catch { /* ignore */ }
+    stopTracks();
+    setRecording(false);
+    setRecSecs(0);
+  }
+
+  function finishRecording() {
+    recCancelled.current = false;
+    try { recorderRef.current?.stop(); } catch { /* ignore */ }
+  }
+
+  async function sendVoice(blob: Blob, secs: number, mime: string) {
+    if (!userId) return;
+    setUploading(true);
+    const ext = mime.includes("mp4") || mime.includes("aac") ? "m4a" : "webm";
+    const path = `${userId}/voice-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error: upErr } = await supabase.storage.from("chat-images").upload(path, blob, {
+      cacheControl: "31536000",
+      contentType: mime,
+    });
+    if (!upErr) {
+      await supabase.from("messages").insert({
+        sender_id: userId,
+        body: null,
+        image_urls: [],
+        audio_url: path,
+        audio_duration: secs,
+        reply_to_id: replyTo?.id ?? null,
+      });
+      setReplyTo(null);
+    }
+    setUploading(false);
+  }
+
+  useEffect(() => () => { stopTracks(); }, []);
+
   async function deleteMessage(id: string) {
     await supabase.from("messages").delete().eq("id", id);
   }
