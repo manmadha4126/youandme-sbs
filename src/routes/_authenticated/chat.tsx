@@ -786,8 +786,45 @@ function ChatPage() {
         </div>
       )}
 
-      {/* Composer */}
+      {/* Composer — recording state (WhatsApp style) */}
+      {recording ? (
+        <div className="glass sticky bottom-0 z-20 flex items-center gap-3 border-t border-white/10 px-3 py-3">
+          <button
+            type="button"
+            aria-label="Cancel recording"
+            onClick={cancelRecording}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/10 text-white active:scale-95"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          </button>
+          <div
+            className="flex min-h-12 flex-1 items-center gap-3 rounded-3xl border border-white/20 px-4 text-white shadow-inner"
+            style={{ backgroundImage: "linear-gradient(90deg, #0d5c63 0%, #3d1f6b 50%, #0d5c63 100%)" }}
+          >
+            <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500" />
+            <span className="tabular-nums text-[15px] font-semibold">{formatDuration(recSecs)}</span>
+            <span className="truncate text-xs text-white/70">Recording… tap 🗑 to cancel</span>
+          </div>
+          <button
+            type="button"
+            onClick={finishRecording}
+            aria-label="Send voice message"
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#25D366] text-white shadow-lg transition active:scale-95"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+          </button>
+        </div>
+      ) : (
       <div className="glass sticky bottom-0 z-20 flex items-end gap-2 border-t border-white/10 px-3 py-3">
+        {/* Desktop-only voice record button */}
+        <button
+          type="button"
+          aria-label="Record voice message"
+          onClick={startRecording}
+          className="hidden sm:grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/5 text-white hover:bg-white/10"
+        >
+          <MicIcon />
+        </button>
         {/* Desktop-only emoji button */}
         <button
           aria-label={showEmojis ? "Close emojis" : "Emoji"}
