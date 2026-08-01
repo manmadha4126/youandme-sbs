@@ -18,6 +18,8 @@ type Message = {
   created_at: string;
   read_at: string | null;
   reply_to_id: string | null;
+  audio_url?: string | null;
+  audio_duration?: number | null;
 };
 
 type Profile = { id: string; username: string; display_name: string };
