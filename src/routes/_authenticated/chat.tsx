@@ -49,6 +49,81 @@ function formatLastSeen(d: string) {
   if (isYesterday(date)) return `yesterday at ${format(date, "h:mm a")}`;
   return format(date, "MMM d, h:mm a");
 }
+function formatDuration(total: number) {
+  const s = Math.max(0, Math.round(total));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+function MicIcon({ className = "h-[22px] w-[22px]" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z" />
+      <path d="M19 10v1a7 7 0 0 1-14 0v-1M12 19v3M8 22h8" />
+    </svg>
+  );
+}
+
+function VoiceNote({ url, duration, mine }: { url: string | null; duration: number; mine: boolean }) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [pos, setPos] = useState(0);
+  const total = duration || 0;
+  const pct = total ? Math.min(100, (pos / total) * 100) : 0;
+
+  function toggle() {
+    const a = audioRef.current;
+    if (!a) return;
+    if (playing) { a.pause(); } else { a.play().catch(() => {}); }
+  }
+
+  return (
+    <div className="flex min-w-[210px] items-center gap-3 px-3 py-2">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label={playing ? "Pause voice message" : "Play voice message"}
+        disabled={!url}
+        className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${mine ? "bg-white/20 text-white" : "bg-[#25D366] text-white"} disabled:opacity-50`}
+      >
+        {playing ? (
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+        ) : (
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+        )}
+      </button>
+      <div className="min-w-0 flex-1">
+        <div className="flex h-6 items-center gap-[3px]">
+          {Array.from({ length: 26 }).map((_, i) => {
+            const active = (i / 26) * 100 <= pct;
+            const h = 6 + ((i * 7) % 14);
+            return (
+              <span
+                key={i}
+                className={`w-[3px] rounded-full ${active ? (mine ? "bg-white" : "bg-[#25D366]") : mine ? "bg-white/35" : "bg-slate-300"}`}
+                style={{ height: `${h}px` }}
+              />
+            );
+          })}
+        </div>
+        <div className={`mt-0.5 flex items-center gap-1 text-[11px] ${mine ? "text-white/80" : "text-slate-500"}`}>
+          <MicIcon className="h-3 w-3" />
+          <span className="tabular-nums">{formatDuration(playing || pos ? pos : total)}</span>
+        </div>
+      </div>
+      {url && (
+        <audio
+          ref={audioRef}
+          src={url}
+          preload="metadata"
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onTimeUpdate={(e) => setPos((e.target as HTMLAudioElement).currentTime)}
+          onEnded={() => { setPlaying(false); setPos(0); }}
+          className="hidden"
+        />
+      )}
+    </div>
+  );
+}
 
 // Notifications: use the service worker when available (required on Android/mobile),
 // fall back to the plain Notification constructor on desktop.
