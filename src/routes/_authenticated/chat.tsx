@@ -1195,6 +1195,13 @@ function MessageBubble({
               </div>
             </div>
           )}
+          {m.audio_url && (
+            <VoiceNote
+              url={signedUrls[m.audio_url] ?? null}
+              duration={m.audio_duration ?? 0}
+              mine={mine}
+            />
+          )}
           {imgs.length > 0 && (
             <div className={`grid gap-1 p-1 ${gridCols}`}>
               {imgs.map((path) => {
