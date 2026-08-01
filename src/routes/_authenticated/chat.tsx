@@ -107,6 +107,7 @@ function ChatPage() {
   const recStream = useRef<MediaStream | null>(null);
   const recTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const recCancelled = useRef(false);
+  const recSecsRef = useRef(0);
   const otherLastSeenRef = useRef<string | null>(null);
   const meUsernameRef = useRef<string | null>(null);
   const otherNameRef = useRef<string>("");
