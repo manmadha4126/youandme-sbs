@@ -233,7 +233,7 @@ function ChatPage() {
         if (next.sender_id !== userId && meUsernameRef.current === "manmadha") {
           notify(
             otherNameRef.current || "New message",
-            next.body || (next.image_urls?.length ? "📷 Photo" : "New message"),
+            next.body || (next.image_urls?.length ? "📷 Photo" : next.audio_url ? "🎤 Voice message" : "New message"),
           );
         }
       })
@@ -847,7 +847,7 @@ function ChatPage() {
               Replying to {profiles[replyTo.sender_id]?.display_name ?? "message"}
             </div>
             <div className="truncate text-xs text-white/70">
-              {replyTo.body || (replyTo.image_urls?.length ? "📷 Photo" : "")}
+              {replyTo.body || (replyTo.image_urls?.length ? "📷 Photo" : replyTo.audio_url ? "🎤 Voice message" : "")}
             </div>
           </div>
           <button
@@ -1190,7 +1190,7 @@ function MessageBubble({
                   {parentAuthor ?? "Message"}
                 </div>
                 <div className="truncate text-xs text-white/80">
-                  {parent.body || (parent.image_urls?.length ? "📷 Photo" : "")}
+                  {parent.body || (parent.image_urls?.length ? "📷 Photo" : parent.audio_url ? "🎤 Voice message" : "")}
                 </div>
               </div>
             </div>
