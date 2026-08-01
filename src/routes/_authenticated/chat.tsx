@@ -100,6 +100,13 @@ function ChatPage() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [otherLastSeen, setOtherLastSeen] = useState<string | null>(null);
   const [notifPerm, setNotifPerm] = useState<string>("default");
+  const [recording, setRecording] = useState(false);
+  const [recSecs, setRecSecs] = useState(0);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const recChunks = useRef<Blob[]>([]);
+  const recStream = useRef<MediaStream | null>(null);
+  const recTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recCancelled = useRef(false);
   const otherLastSeenRef = useRef<string | null>(null);
   const meUsernameRef = useRef<string | null>(null);
   const otherNameRef = useRef<string>("");
