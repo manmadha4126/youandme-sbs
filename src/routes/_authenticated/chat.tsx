@@ -964,6 +964,7 @@ function ChatPage() {
           )}
         </button>
       </div>
+      )}
 
       {/* Full-screen image viewer */}
       {previewOpen && (
