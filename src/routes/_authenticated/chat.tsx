@@ -332,10 +332,11 @@ function ChatPage() {
   }, [messages, userId]);
 
 
-  // Sign URLs for images (private bucket)
+  // Sign URLs for images + voice notes (private bucket)
   useEffect(() => {
     const paths = new Set<string>();
     messages.forEach((m) => m.image_urls?.forEach((p) => { if (p && !signedUrls[p]) paths.add(p); }));
+    messages.forEach((m) => { if (m.audio_url && !signedUrls[m.audio_url]) paths.add(m.audio_url); });
     if (paths.size === 0) return;
     (async () => {
       const arr = Array.from(paths);
