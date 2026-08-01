@@ -18,6 +18,8 @@ type Message = {
   created_at: string;
   read_at: string | null;
   reply_to_id: string | null;
+  audio_url?: string | null;
+  audio_duration?: number | null;
 };
 
 type Profile = { id: string; username: string; display_name: string };
@@ -46,6 +48,81 @@ function formatLastSeen(d: string) {
   if (isToday(date)) return `today at ${format(date, "h:mm a")}`;
   if (isYesterday(date)) return `yesterday at ${format(date, "h:mm a")}`;
   return format(date, "MMM d, h:mm a");
+}
+function formatDuration(total: number) {
+  const s = Math.max(0, Math.round(total));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+function MicIcon({ className = "h-[22px] w-[22px]" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z" />
+      <path d="M19 10v1a7 7 0 0 1-14 0v-1M12 19v3M8 22h8" />
+    </svg>
+  );
+}
+
+function VoiceNote({ url, duration, mine }: { url: string | null; duration: number; mine: boolean }) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [pos, setPos] = useState(0);
+  const total = duration || 0;
+  const pct = total ? Math.min(100, (pos / total) * 100) : 0;
+
+  function toggle() {
+    const a = audioRef.current;
+    if (!a) return;
+    if (playing) { a.pause(); } else { a.play().catch(() => {}); }
+  }
+
+  return (
+    <div className="flex min-w-[210px] items-center gap-3 px-3 py-2">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label={playing ? "Pause voice message" : "Play voice message"}
+        disabled={!url}
+        className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${mine ? "bg-white/20 text-white" : "bg-[#25D366] text-white"} disabled:opacity-50`}
+      >
+        {playing ? (
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+        ) : (
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+        )}
+      </button>
+      <div className="min-w-0 flex-1">
+        <div className="flex h-6 items-center gap-[3px]">
+          {Array.from({ length: 26 }).map((_, i) => {
+            const active = (i / 26) * 100 <= pct;
+            const h = 6 + ((i * 7) % 14);
+            return (
+              <span
+                key={i}
+                className={`w-[3px] rounded-full ${active ? (mine ? "bg-white" : "bg-[#25D366]") : mine ? "bg-white/35" : "bg-slate-300"}`}
+                style={{ height: `${h}px` }}
+              />
+            );
+          })}
+        </div>
+        <div className={`mt-0.5 flex items-center gap-1 text-[11px] ${mine ? "text-white/80" : "text-slate-500"}`}>
+          <MicIcon className="h-3 w-3" />
+          <span className="tabular-nums">{formatDuration(playing || pos ? pos : total)}</span>
+        </div>
+      </div>
+      {url && (
+        <audio
+          ref={audioRef}
+          src={url}
+          preload="metadata"
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onTimeUpdate={(e) => setPos((e.target as HTMLAudioElement).currentTime)}
+          onEnded={() => { setPlaying(false); setPos(0); }}
+          className="hidden"
+        />
+      )}
+    </div>
+  );
 }
 
 // Notifications: use the service worker when available (required on Android/mobile),
@@ -98,6 +175,14 @@ function ChatPage() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [otherLastSeen, setOtherLastSeen] = useState<string | null>(null);
   const [notifPerm, setNotifPerm] = useState<string>("default");
+  const [recording, setRecording] = useState(false);
+  const [recSecs, setRecSecs] = useState(0);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const recChunks = useRef<Blob[]>([]);
+  const recStream = useRef<MediaStream | null>(null);
+  const recTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recCancelled = useRef(false);
+  const recSecsRef = useRef(0);
   const otherLastSeenRef = useRef<string | null>(null);
   const meUsernameRef = useRef<string | null>(null);
   const otherNameRef = useRef<string>("");
@@ -148,7 +233,7 @@ function ChatPage() {
         if (next.sender_id !== userId && meUsernameRef.current === "manmadha") {
           notify(
             otherNameRef.current || "New message",
-            next.body || (next.image_urls?.length ? "📷 Photo" : "New message"),
+            next.body || (next.image_urls?.length ? "📷 Photo" : next.audio_url ? "🎤 Voice message" : "New message"),
           );
         }
       })
@@ -323,10 +408,11 @@ function ChatPage() {
   }, [messages, userId]);
 
 
-  // Sign URLs for images (private bucket)
+  // Sign URLs for images + voice notes (private bucket)
   useEffect(() => {
     const paths = new Set<string>();
     messages.forEach((m) => m.image_urls?.forEach((p) => { if (p && !signedUrls[p]) paths.add(p); }));
+    messages.forEach((m) => { if (m.audio_url && !signedUrls[m.audio_url]) paths.add(m.audio_url); });
     if (paths.size === 0) return;
     (async () => {
       const arr = Array.from(paths);
@@ -415,6 +501,88 @@ function ChatPage() {
     }
     setUploading(false);
   }
+
+  // ---- Voice notes (WhatsApp-style) ----
+  function stopTracks() {
+    recStream.current?.getTracks().forEach((t) => t.stop());
+    recStream.current = null;
+    if (recTimer.current) { clearInterval(recTimer.current); recTimer.current = null; }
+  }
+
+  async function startRecording() {
+    if (recording) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recStream.current = stream;
+      const mime = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/aac"].find(
+        (t) => typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(t)
+      );
+      const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      recChunks.current = [];
+      recCancelled.current = false;
+      rec.ondataavailable = (e) => { if (e.data.size > 0) recChunks.current.push(e.data); };
+      rec.onstop = async () => {
+        const secs = recSecsRef.current;
+        const blob = new Blob(recChunks.current, { type: rec.mimeType || "audio/webm" });
+        stopTracks();
+        setRecording(false);
+        setRecSecs(0);
+        if (recCancelled.current || blob.size < 800 || secs < 1) return;
+        await sendVoice(blob, secs, rec.mimeType || "audio/webm");
+      };
+      rec.start(200);
+      recorderRef.current = rec;
+      setRecording(true);
+      setRecSecs(0);
+      recSecsRef.current = 0;
+      recTimer.current = setInterval(() => {
+        recSecsRef.current += 1;
+        setRecSecs(recSecsRef.current);
+      }, 1000);
+    } catch {
+      stopTracks();
+      setRecording(false);
+      alert("Microphone permission is needed to record a voice message.");
+    }
+  }
+
+  function cancelRecording() {
+    recCancelled.current = true;
+    try { recorderRef.current?.stop(); } catch { /* ignore */ }
+    stopTracks();
+    setRecording(false);
+    setRecSecs(0);
+  }
+
+  function finishRecording() {
+    recCancelled.current = false;
+    try { recorderRef.current?.stop(); } catch { /* ignore */ }
+  }
+
+  async function sendVoice(blob: Blob, secs: number, mime: string) {
+    if (!userId) return;
+    setUploading(true);
+    const ext = mime.includes("mp4") || mime.includes("aac") ? "m4a" : "webm";
+    const path = `${userId}/voice-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error: upErr } = await supabase.storage.from("chat-images").upload(path, blob, {
+      cacheControl: "31536000",
+      contentType: mime,
+    });
+    if (!upErr) {
+      await supabase.from("messages").insert({
+        sender_id: userId,
+        body: null,
+        image_urls: [],
+        audio_url: path,
+        audio_duration: secs,
+        reply_to_id: replyTo?.id ?? null,
+      });
+      setReplyTo(null);
+    }
+    setUploading(false);
+  }
+
+  useEffect(() => () => { stopTracks(); }, []);
 
   async function deleteMessage(id: string) {
     await supabase.from("messages").delete().eq("id", id);
@@ -679,7 +847,7 @@ function ChatPage() {
               Replying to {profiles[replyTo.sender_id]?.display_name ?? "message"}
             </div>
             <div className="truncate text-xs text-white/70">
-              {replyTo.body || (replyTo.image_urls?.length ? "📷 Photo" : "")}
+              {replyTo.body || (replyTo.image_urls?.length ? "📷 Photo" : replyTo.audio_url ? "🎤 Voice message" : "")}
             </div>
           </div>
           <button
@@ -693,8 +861,45 @@ function ChatPage() {
         </div>
       )}
 
-      {/* Composer */}
+      {/* Composer — recording state (WhatsApp style) */}
+      {recording ? (
+        <div className="glass sticky bottom-0 z-20 flex items-center gap-3 border-t border-white/10 px-3 py-3">
+          <button
+            type="button"
+            aria-label="Cancel recording"
+            onClick={cancelRecording}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/10 text-white active:scale-95"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          </button>
+          <div
+            className="flex min-h-12 flex-1 items-center gap-3 rounded-3xl border border-white/20 px-4 text-white shadow-inner"
+            style={{ backgroundImage: "linear-gradient(90deg, #0d5c63 0%, #3d1f6b 50%, #0d5c63 100%)" }}
+          >
+            <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500" />
+            <span className="tabular-nums text-[15px] font-semibold">{formatDuration(recSecs)}</span>
+            <span className="truncate text-xs text-white/70">Recording… tap 🗑 to cancel</span>
+          </div>
+          <button
+            type="button"
+            onClick={finishRecording}
+            aria-label="Send voice message"
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#25D366] text-white shadow-lg transition active:scale-95"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+          </button>
+        </div>
+      ) : (
       <div className="glass sticky bottom-0 z-20 flex items-end gap-2 border-t border-white/10 px-3 py-3">
+        {/* Desktop-only voice record button */}
+        <button
+          type="button"
+          aria-label="Record voice message"
+          onClick={startRecording}
+          className="hidden sm:grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/5 text-white hover:bg-white/10"
+        >
+          <MicIcon />
+        </button>
         {/* Desktop-only emoji button */}
         <button
           aria-label={showEmojis ? "Close emojis" : "Emoji"}
@@ -764,11 +969,19 @@ function ChatPage() {
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
             rows={1}
             placeholder="Message"
-            className="max-h-32 min-h-12 w-full resize-none rounded-3xl border border-white/20 px-4 py-3 pr-[104px] sm:pr-4 text-[15px] text-white placeholder-white/60 outline-none shadow-inner focus:border-white/40"
+            className="max-h-32 min-h-12 w-full resize-none rounded-3xl border border-white/20 px-4 py-3 pr-[142px] sm:pr-4 text-[15px] text-white placeholder-white/60 outline-none shadow-inner focus:border-white/40"
             style={{ backgroundImage: "linear-gradient(90deg, #0d5c63 0%, #3d1f6b 50%, #0d5c63 100%)" }}
           />
-          {/* Mobile-only inline attach + emoji — vertically centered, larger */}
+          {/* Mobile-only inline mic + attach + emoji — vertically centered, larger */}
           <div className="sm:hidden absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+            <button
+              type="button"
+              aria-label="Record voice message"
+              onClick={startRecording}
+              className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-95"
+            >
+              <MicIcon />
+            </button>
             <button
               type="button"
               aria-label="Attach"
@@ -826,6 +1039,7 @@ function ChatPage() {
           )}
         </button>
       </div>
+      )}
 
       {/* Full-screen image viewer */}
       {previewOpen && (
@@ -976,10 +1190,17 @@ function MessageBubble({
                   {parentAuthor ?? "Message"}
                 </div>
                 <div className="truncate text-xs text-white/80">
-                  {parent.body || (parent.image_urls?.length ? "📷 Photo" : "")}
+                  {parent.body || (parent.image_urls?.length ? "📷 Photo" : parent.audio_url ? "🎤 Voice message" : "")}
                 </div>
               </div>
             </div>
+          )}
+          {m.audio_url && (
+            <VoiceNote
+              url={signedUrls[m.audio_url] ?? null}
+              duration={m.audio_duration ?? 0}
+              mine={mine}
+            />
           )}
           {imgs.length > 0 && (
             <div className={`grid gap-1 p-1 ${gridCols}`}>
