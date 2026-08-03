@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Phone, Video, MoreVertical, BellRing } from "lucide-react";
+import { ArrowLeft, Phone, Video, MoreVertical } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { CallOverlay, type CallState } from "@/components/CallOverlay";
 
@@ -174,7 +174,6 @@ function ChatPage() {
   const [callState, setCallState] = useState<CallState>({ status: "idle" });
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [otherLastSeen, setOtherLastSeen] = useState<string | null>(null);
-  const [notifPerm, setNotifPerm] = useState<string>("default");
   const [recording, setRecording] = useState(false);
   const [recSecs, setRecSecs] = useState(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -331,7 +330,6 @@ function ChatPage() {
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("/sw.js").catch(() => {});
       }
-      if ("Notification" in window) setNotifPerm(Notification.permission);
     }
   }, [profiles, userId]);
 
@@ -672,21 +670,6 @@ function ChatPage() {
         >
           <Video size={18} />
         </button>
-        {meUsername === "manmadha" && notifPerm !== "granted" && (
-          <button
-            aria-label="Enable message alerts"
-            onClick={async () => {
-              try {
-                if ("serviceWorker" in navigator) await navigator.serviceWorker.register("/sw.js");
-                const p = await Notification.requestPermission();
-                setNotifPerm(p);
-              } catch { /* ignore */ }
-            }}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-400 text-black shadow-lg animate-pulse active:scale-95"
-          >
-            <BellRing size={18} />
-          </button>
-        )}
         <button aria-label="Search" onClick={() => { if (showSearch) setSearch(""); setShowSearch((v) => !v); }} className="hidden sm:grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/80 hover:bg-white/10">
 
           <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
@@ -878,7 +861,7 @@ function ChatPage() {
           >
             <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500" />
             <span className="tabular-nums text-[15px] font-semibold">{formatDuration(recSecs)}</span>
-            <span className="truncate text-xs text-white/70">Recording… tap 🗑 to cancel</span>
+            <span className="truncate text-xs text-white/70">Recording… tap <span className="inline-flex align-middle"><svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></span> to delete</span>
           </div>
           <button
             type="button"
