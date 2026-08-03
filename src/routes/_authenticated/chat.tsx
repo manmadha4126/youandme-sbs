@@ -174,7 +174,6 @@ function ChatPage() {
   const [callState, setCallState] = useState<CallState>({ status: "idle" });
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [otherLastSeen, setOtherLastSeen] = useState<string | null>(null);
-  const [notifPerm, setNotifPerm] = useState<string>("default");
   const [recording, setRecording] = useState(false);
   const [recSecs, setRecSecs] = useState(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
