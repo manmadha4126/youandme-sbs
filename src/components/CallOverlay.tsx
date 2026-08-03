@@ -222,7 +222,7 @@ export function CallOverlay({
       cleanup();
       setCallState({ status: "idle" });
     }
-  }, [callState, buildPc, send, userId, cleanup, setCallState]);
+  }, [callState, buildPc, send, userId, cleanup, setCallState, ensureMediaPermission, getCallStream]);
 
   const declineIncoming = useCallback(() => {
     if (callState.status !== "incoming") return;
