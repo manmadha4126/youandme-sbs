@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff } from "lucide-react";
+import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff, SwitchCamera } from "lucide-react";
 
 export type CallKind = "audio" | "video";
 export type CallState =
@@ -41,6 +41,76 @@ export function CallOverlay({
   const [muted, setMuted] = useState(false);
   const [camOff, setCamOff] = useState(false);
   const pendingIceRef = useRef<RTCIceCandidateInit[]>([]);
+  const [facing, setFacing] = useState<"user" | "environment">("user");
+  const [hasMultipleCams, setHasMultipleCams] = useState(false);
+  const [switching, setSwitching] = useState(false);
+
+  // Ask for camera + mic permission up-front and detect front/back cameras
+  const ensureMediaPermission = useCallback(async (kind: CallKind) => {
+    const probe = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: kind === "video",
+    });
+    probe.getTracks().forEach((t) => t.stop());
+    if (kind === "video") {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cams = devices.filter((d) => d.kind === "videoinput");
+        setHasMultipleCams(cams.length > 1);
+      } catch {
+        setHasMultipleCams(false);
+      }
+    }
+  }, []);
+
+  const getCallStream = useCallback(
+    async (kind: CallKind, want: "user" | "environment") => {
+      if (kind !== "video") return navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      try {
+        return await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: { facingMode: { exact: want } },
+        });
+      } catch {
+        return navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: want } });
+      }
+    },
+    [],
+  );
+
+  const flipCamera = useCallback(async () => {
+    const pc = pcRef.current;
+    const stream = localStreamRef.current;
+    if (!pc || !stream || switching) return;
+    const next = facing === "user" ? "environment" : "user";
+    setSwitching(true);
+    try {
+      let newStream: MediaStream;
+      try {
+        newStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { exact: next } },
+        });
+      } catch {
+        newStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: next } });
+      }
+      const newTrack = newStream.getVideoTracks()[0];
+      if (!newTrack) return;
+      newTrack.enabled = !camOff;
+      const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+      if (sender) await sender.replaceTrack(newTrack);
+      stream.getVideoTracks().forEach((t) => {
+        t.stop();
+        stream.removeTrack(t);
+      });
+      stream.addTrack(newTrack);
+      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      setFacing(next);
+    } catch (err) {
+      console.error("flip camera failed", err);
+    } finally {
+      setSwitching(false);
+    }
+  }, [facing, camOff, switching]);
 
   const send = useCallback((payload: SignalPayload) => {
     channelRef.current?.send({ type: "broadcast", event: "signal", payload });
