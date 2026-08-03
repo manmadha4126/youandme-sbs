@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff } from "lucide-react";
+import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff, SwitchCamera } from "lucide-react";
 
 export type CallKind = "audio" | "video";
 export type CallState =
@@ -41,6 +41,76 @@ export function CallOverlay({
   const [muted, setMuted] = useState(false);
   const [camOff, setCamOff] = useState(false);
   const pendingIceRef = useRef<RTCIceCandidateInit[]>([]);
+  const [facing, setFacing] = useState<"user" | "environment">("user");
+  const [hasMultipleCams, setHasMultipleCams] = useState(false);
+  const [switching, setSwitching] = useState(false);
+
+  // Ask for camera + mic permission up-front and detect front/back cameras
+  const ensureMediaPermission = useCallback(async (kind: CallKind) => {
+    const probe = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: kind === "video",
+    });
+    probe.getTracks().forEach((t) => t.stop());
+    if (kind === "video") {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cams = devices.filter((d) => d.kind === "videoinput");
+        setHasMultipleCams(cams.length > 1);
+      } catch {
+        setHasMultipleCams(false);
+      }
+    }
+  }, []);
+
+  const getCallStream = useCallback(
+    async (kind: CallKind, want: "user" | "environment") => {
+      if (kind !== "video") return navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      try {
+        return await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: { facingMode: { exact: want } },
+        });
+      } catch {
+        return navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: want } });
+      }
+    },
+    [],
+  );
+
+  const flipCamera = useCallback(async () => {
+    const pc = pcRef.current;
+    const stream = localStreamRef.current;
+    if (!pc || !stream || switching) return;
+    const next = facing === "user" ? "environment" : "user";
+    setSwitching(true);
+    try {
+      let newStream: MediaStream;
+      try {
+        newStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { exact: next } },
+        });
+      } catch {
+        newStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: next } });
+      }
+      const newTrack = newStream.getVideoTracks()[0];
+      if (!newTrack) return;
+      newTrack.enabled = !camOff;
+      const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+      if (sender) await sender.replaceTrack(newTrack);
+      stream.getVideoTracks().forEach((t) => {
+        t.stop();
+        stream.removeTrack(t);
+      });
+      stream.addTrack(newTrack);
+      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      setFacing(next);
+    } catch (err) {
+      console.error("flip camera failed", err);
+    } finally {
+      setSwitching(false);
+    }
+  }, [facing, camOff, switching]);
 
   const send = useCallback((payload: SignalPayload) => {
     channelRef.current?.send({ type: "broadcast", event: "signal", payload });
@@ -106,10 +176,9 @@ export function CallOverlay({
   const startOutgoing = useCallback(async (kind: CallKind) => {
     if (!otherId) return;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: kind === "video" ? { facingMode: "user" } : false,
-      });
+      await ensureMediaPermission(kind);
+      setFacing("user");
+      const stream = await getCallStream(kind, "user");
       localStreamRef.current = stream;
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
       const pc = buildPc(otherId);
@@ -125,16 +194,15 @@ export function CallOverlay({
       cleanup();
       setCallState({ status: "idle" });
     }
-  }, [otherId, userId, buildPc, send, cleanup, setCallState]);
+  }, [otherId, userId, buildPc, send, cleanup, setCallState, ensureMediaPermission, getCallStream]);
 
   const acceptIncoming = useCallback(async () => {
     if (callState.status !== "incoming") return;
     const { kind, from, offer } = callState;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: kind === "video" ? { facingMode: "user" } : false,
-      });
+      await ensureMediaPermission(kind);
+      setFacing("user");
+      const stream = await getCallStream(kind, "user");
       localStreamRef.current = stream;
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
       const pc = buildPc(from);
@@ -154,7 +222,7 @@ export function CallOverlay({
       cleanup();
       setCallState({ status: "idle" });
     }
-  }, [callState, buildPc, send, userId, cleanup, setCallState]);
+  }, [callState, buildPc, send, userId, cleanup, setCallState, ensureMediaPermission, getCallStream]);
 
   const declineIncoming = useCallback(() => {
     if (callState.status !== "incoming") return;
@@ -199,7 +267,26 @@ export function CallOverlay({
         {kind === "video" && (
           <>
             <video ref={remoteVideoRef} autoPlay playsInline className="absolute inset-0 h-full w-full object-cover" />
-            <video ref={localVideoRef} autoPlay playsInline muted className="absolute right-4 top-4 h-40 w-28 rounded-2xl border border-white/20 object-cover shadow-lg" />
+            <div className="absolute right-4 top-4 h-40 w-28 overflow-hidden rounded-2xl border border-white/20 bg-black shadow-lg">
+              <video
+                ref={localVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className="h-full w-full object-cover"
+                style={{ transform: facing === "user" ? "scaleX(-1)" : "none" }}
+              />
+              {callState.status === "in-call" && (
+                <button
+                  onClick={flipCamera}
+                  disabled={switching}
+                  aria-label="Flip camera"
+                  className="absolute bottom-1 right-1 grid h-8 w-8 place-items-center rounded-full bg-black/60 text-white active:scale-95 disabled:opacity-50"
+                >
+                  <SwitchCamera size={16} />
+                </button>
+              )}
+            </div>
           </>
         )}
         {kind === "audio" && (
@@ -232,6 +319,16 @@ export function CallOverlay({
             {kind === "video" && (
               <button onClick={toggleCam} className={`grid h-14 w-14 place-items-center rounded-full ${camOff ? "bg-white text-black" : "bg-white/15"} active:scale-95`}>
                 {camOff ? <VideoOff size={22} /> : <Video size={22} />}
+              </button>
+            )}
+            {kind === "video" && callState.status === "in-call" && (
+              <button
+                onClick={flipCamera}
+                disabled={switching}
+                aria-label="Flip camera"
+                className="grid h-14 w-14 place-items-center rounded-full bg-white/15 active:scale-95 disabled:opacity-50"
+              >
+                <SwitchCamera size={22} />
               </button>
             )}
             <button onClick={() => endCall(true)} className="grid h-16 w-16 place-items-center rounded-full bg-red-500 shadow-lg active:scale-95">
