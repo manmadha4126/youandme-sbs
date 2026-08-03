@@ -330,7 +330,6 @@ function ChatPage() {
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("/sw.js").catch(() => {});
       }
-      if ("Notification" in window) setNotifPerm(Notification.permission);
     }
   }, [profiles, userId]);
 
