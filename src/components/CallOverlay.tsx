@@ -321,6 +321,16 @@ export function CallOverlay({
                 {camOff ? <VideoOff size={22} /> : <Video size={22} />}
               </button>
             )}
+            {kind === "video" && callState.status === "in-call" && (
+              <button
+                onClick={flipCamera}
+                disabled={switching}
+                aria-label="Flip camera"
+                className="grid h-14 w-14 place-items-center rounded-full bg-white/15 active:scale-95 disabled:opacity-50"
+              >
+                <SwitchCamera size={22} />
+              </button>
+            )}
             <button onClick={() => endCall(true)} className="grid h-16 w-16 place-items-center rounded-full bg-red-500 shadow-lg active:scale-95">
               <PhoneOff size={26} />
             </button>
