@@ -868,7 +868,7 @@ function ChatPage() {
             type="button"
             aria-label="Cancel recording"
             onClick={cancelRecording}
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/10 text-white active:scale-95"
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white/10 text-black active:scale-95"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
           </button>
@@ -890,7 +890,7 @@ function ChatPage() {
           </button>
         </div>
       ) : (
-      <div className="glass sticky bottom-0 z-20 flex items-end gap-2 border-t border-white/10 px-3 py-3">
+      <div className="glass sticky bottom-0 z-20 flex items-center gap-2 border-t border-white/10 px-3 py-3">
         {/* Desktop-only voice record button */}
         <button
           type="button"
