@@ -267,7 +267,26 @@ export function CallOverlay({
         {kind === "video" && (
           <>
             <video ref={remoteVideoRef} autoPlay playsInline className="absolute inset-0 h-full w-full object-cover" />
-            <video ref={localVideoRef} autoPlay playsInline muted className="absolute right-4 top-4 h-40 w-28 rounded-2xl border border-white/20 object-cover shadow-lg" />
+            <div className="absolute right-4 top-4 h-40 w-28 overflow-hidden rounded-2xl border border-white/20 bg-black shadow-lg">
+              <video
+                ref={localVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className="h-full w-full object-cover"
+                style={{ transform: facing === "user" ? "scaleX(-1)" : "none" }}
+              />
+              {callState.status === "in-call" && (
+                <button
+                  onClick={flipCamera}
+                  disabled={switching}
+                  aria-label="Flip camera"
+                  className="absolute bottom-1 right-1 grid h-8 w-8 place-items-center rounded-full bg-black/60 text-white active:scale-95 disabled:opacity-50"
+                >
+                  <SwitchCamera size={16} />
+                </button>
+              )}
+            </div>
           </>
         )}
         {kind === "audio" && (
