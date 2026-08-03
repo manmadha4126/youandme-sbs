@@ -176,10 +176,9 @@ export function CallOverlay({
   const startOutgoing = useCallback(async (kind: CallKind) => {
     if (!otherId) return;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: kind === "video" ? { facingMode: "user" } : false,
-      });
+      await ensureMediaPermission(kind);
+      setFacing("user");
+      const stream = await getCallStream(kind, "user");
       localStreamRef.current = stream;
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
       const pc = buildPc(otherId);
@@ -195,16 +194,15 @@ export function CallOverlay({
       cleanup();
       setCallState({ status: "idle" });
     }
-  }, [otherId, userId, buildPc, send, cleanup, setCallState]);
+  }, [otherId, userId, buildPc, send, cleanup, setCallState, ensureMediaPermission, getCallStream]);
 
   const acceptIncoming = useCallback(async () => {
     if (callState.status !== "incoming") return;
     const { kind, from, offer } = callState;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: kind === "video" ? { facingMode: "user" } : false,
-      });
+      await ensureMediaPermission(kind);
+      setFacing("user");
+      const stream = await getCallStream(kind, "user");
       localStreamRef.current = stream;
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
       const pc = buildPc(from);
