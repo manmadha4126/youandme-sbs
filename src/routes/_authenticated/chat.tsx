@@ -861,7 +861,7 @@ function ChatPage() {
           >
             <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500" />
             <span className="tabular-nums text-[15px] font-semibold">{formatDuration(recSecs)}</span>
-            <span className="truncate text-xs text-white/70">Recording… tap 🗑 to cancel</span>
+            <span className="truncate text-xs text-white/70">Recording… tap <span className="inline-flex align-middle"><svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></span> to delete</span>
           </div>
           <button
             type="button"
