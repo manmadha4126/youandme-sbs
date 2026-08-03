@@ -1030,7 +1030,7 @@ function ChatPage() {
           onClick={sendMessage}
           disabled={uploading || (!text.trim() && pendingImages.length === 0)}
           aria-label="Send"
-          className="grid h-12 w-12 shrink-0 place-items-center self-end rounded-full bg-[#25D366] text-white shadow-lg transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+          className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#25D366] text-white shadow-lg transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {uploading ? (
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
