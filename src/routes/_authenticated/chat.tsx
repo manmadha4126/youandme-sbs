@@ -491,13 +491,19 @@ function ChatPage() {
     if (!userId || files.length === 0) return [];
     const paths: string[] = [];
     for (const file of files) {
-      const ext = file.name.split(".").pop() || "jpg";
+      const ext = file.name.split(".").pop() || "bin";
       const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       const { error } = await supabase.storage.from("chat-images").upload(path, file, {
         cacheControl: "31536000",
-        contentType: file.type,
+        contentType: file.type || "application/octet-stream",
+        upsert: false,
       });
-      if (!error) paths.push(path);
+      if (error) {
+        toast.error(`Could not upload ${file.name}`);
+        continue;
+      }
+      const isImage = file.type.startsWith("image/") || file.type.startsWith("video/");
+      paths.push(isImage ? path : `file|${encodeURIComponent(file.name)}|${path}`);
     }
     return paths;
   }
