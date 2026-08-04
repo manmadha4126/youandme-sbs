@@ -351,10 +351,14 @@ export function CallOverlay({
               <button
                 onClick={flipCamera}
                 disabled={switching}
-                aria-label="Flip camera"
-                className="grid h-14 w-14 place-items-center rounded-full bg-white/15 active:scale-95 disabled:opacity-50"
+                aria-label={switching ? "Switching camera" : "Flip camera"}
+                className="grid h-14 w-14 place-items-center rounded-full bg-white/15 active:scale-95 disabled:opacity-60"
               >
-                <SwitchCamera size={22} />
+                {switching ? (
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                ) : (
+                  <SwitchCamera size={22} />
+                )}
               </button>
             )}
             <button onClick={() => endCall(true)} className="grid h-16 w-16 place-items-center rounded-full bg-red-500 shadow-lg active:scale-95">
