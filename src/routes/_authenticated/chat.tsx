@@ -410,7 +410,10 @@ function ChatPage() {
   // Sign URLs for images + voice notes (private bucket)
   useEffect(() => {
     const paths = new Set<string>();
-    messages.forEach((m) => m.image_urls?.forEach((p) => { if (p && !signedUrls[p]) paths.add(p); }));
+    messages.forEach((m) => m.image_urls?.forEach((p) => {
+      const path = parseAttachment(p).path;
+      if (path && !signedUrls[path]) paths.add(path);
+    }));
     messages.forEach((m) => { if (m.audio_url && !signedUrls[m.audio_url]) paths.add(m.audio_url); });
     if (paths.size === 0) return;
     (async () => {
