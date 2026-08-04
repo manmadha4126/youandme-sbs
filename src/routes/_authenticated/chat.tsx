@@ -7,6 +7,25 @@ import { format, isToday, isYesterday } from "date-fns";
 import { CallOverlay, type CallState } from "@/components/CallOverlay";
 import { toast } from "sonner";
 
+// Attachments are stored in messages.image_urls. Plain entries are images;
+// generic files are encoded as `file|<encoded name>|<storage path>`.
+type Attachment = { kind: "image" | "file"; path: string; name: string };
+function parseAttachment(entry: string): Attachment {
+  if (entry.startsWith("file|")) {
+    const [, name, ...rest] = entry.split("|");
+    return { kind: "file", path: rest.join("|"), name: decodeURIComponent(name || "file") };
+  }
+  return { kind: "image", path: entry, name: entry.split("/").pop() || "image" };
+}
+function formatBytes(n: number) {
+  if (!n) return "";
+  const units = ["B", "KB", "MB", "GB"];
+  let i = 0;
+  let v = n;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return `${v.toFixed(v >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
+}
+
 export const Route = createFileRoute("/_authenticated/chat")({
   component: ChatPage,
 });
