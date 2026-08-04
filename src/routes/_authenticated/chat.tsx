@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Phone, Video, MoreVertical } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { CallOverlay, type CallState } from "@/components/CallOverlay";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/chat")({
   component: ChatPage,
