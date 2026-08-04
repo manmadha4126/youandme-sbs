@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Phone, Video, MoreVertical } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { CallOverlay, type CallState } from "@/components/CallOverlay";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/chat")({
   component: ChatPage,
@@ -500,6 +501,35 @@ function ChatPage() {
     setUploading(false);
   }
 
+  async function sendLocation() {
+    if (!userId) return;
+    if (!("geolocation" in navigator)) {
+      toast.error("Location is not supported on this device");
+      return;
+    }
+    setUploading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const link = `https://www.google.com/maps?q=${latitude.toFixed(6)},${longitude.toFixed(6)}`;
+        const { error } = await supabase.from("messages").insert({
+          sender_id: userId,
+          body: `📍 My current location\n${link}`,
+          image_urls: [],
+          reply_to_id: replyTo?.id ?? null,
+        });
+        if (error) toast.error("Could not send location");
+        else setReplyTo(null);
+        setUploading(false);
+      },
+      () => {
+        setUploading(false);
+        toast.error("Location permission denied");
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  }
+
   // ---- Voice notes (WhatsApp-style) ----
   function stopTracks() {
     recStream.current?.getTracks().forEach((t) => t.stop());
@@ -922,6 +952,13 @@ function ChatPage() {
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
                   Gallery
                 </button>
+                <button
+                  className="flex items-center gap-3 px-4 py-3 text-left font-medium text-slate-900 hover:bg-slate-100"
+                  onClick={() => { setShowAttach(false); void sendLocation(); }}
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                  Location
+                </button>
               </div>
             </>
           )}
@@ -1004,6 +1041,13 @@ function ChatPage() {
                 >
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
                   Gallery
+                </button>
+                <button
+                  className="flex items-center gap-3 px-4 py-3 text-left font-medium text-slate-900 active:bg-slate-100"
+                  onClick={() => { setShowAttach(false); void sendLocation(); }}
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                  Location
                 </button>
               </div>
             </div>
@@ -1212,7 +1256,22 @@ function MessageBubble({
           )}
           {m.body && !editing && (
             <p className={`whitespace-pre-wrap break-words px-4 py-2 text-[15px] leading-snug ${imgs.length > 0 ? "pt-2" : ""}`}>
-              {m.body}
+              {m.body.split(/(https?:\/\/\S+)/g).map((part, i) =>
+                /^https?:\/\//.test(part) ? (
+                  <a
+                    key={i}
+                    href={part}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="underline decoration-white/50 underline-offset-2 break-all"
+                  >
+                    {part}
+                  </a>
+                ) : (
+                  <span key={i}>{part}</span>
+                )
+              )}
             </p>
           )}
           {editing && (
@@ -1310,8 +1369,8 @@ function MessageBubble({
 function ImageViewer({ url, onClose }: { url: string; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl animate-fade-in" onClick={onClose}>
-      <button aria-label="Close" onClick={onClose} className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20" style={{ marginTop: "env(safe-area-inset-top)" }}>
-        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+      <button aria-label="Close" onClick={onClose} className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-lg border-2 border-red-600 bg-black text-red-500 shadow-lg transition hover:bg-red-600 hover:text-black active:scale-95" style={{ marginTop: "env(safe-area-inset-top)" }}>
+        <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
       </button>
       <a
         href={url}
