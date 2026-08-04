@@ -1316,6 +1316,32 @@ function MessageBubble({
               })}
             </div>
           )}
+          {docs.length > 0 && (
+            <div className="flex flex-col gap-1 p-1">
+              {docs.map((d) => {
+                const url = signedUrls[d.path];
+                return (
+                  <a
+                    key={d.path}
+                    href={url || undefined}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={d.name}
+                    onClick={(e) => { e.stopPropagation(); if (!url) e.preventDefault(); }}
+                    className={`flex items-center gap-3 rounded-2xl px-3 py-2 ${mine ? "bg-black/20" : "bg-black/10"} ${url ? "hover:opacity-90" : "opacity-60"}`}
+                  >
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/20">
+                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px] font-medium">{d.name}</span>
+                      <span className="block text-[11px] opacity-70">{url ? "Tap to open / download" : "Preparing…"}</span>
+                    </span>
+                  </a>
+                );
+              })}
+            </div>
+          )}
           {m.body && !editing && (
             <p className={`whitespace-pre-wrap break-words px-4 py-2 text-[15px] leading-snug ${imgs.length > 0 ? "pt-2" : ""}`}>
               {m.body.split(/(https?:\/\/\S+)/g).map((part, i) =>
