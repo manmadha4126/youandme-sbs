@@ -293,14 +293,23 @@ export function CallOverlay({
                 className="h-full w-full object-cover"
                 style={{ transform: facing === "user" ? "scaleX(-1)" : "none" }}
               />
+              {switching && (
+                <div className="absolute inset-0 grid place-items-center bg-black/50 backdrop-blur-sm">
+                  <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                </div>
+              )}
               {callState.status === "in-call" && (
                 <button
                   onClick={flipCamera}
                   disabled={switching}
                   aria-label="Flip camera"
-                  className="absolute bottom-1 right-1 grid h-8 w-8 place-items-center rounded-full bg-black/60 text-white active:scale-95 disabled:opacity-50"
+                  className="absolute bottom-1 right-1 grid h-8 w-8 place-items-center rounded-full bg-black/60 text-white active:scale-95 disabled:opacity-60"
                 >
-                  <SwitchCamera size={16} />
+                  {switching ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  ) : (
+                    <SwitchCamera size={16} />
+                  )}
                 </button>
               )}
             </div>
