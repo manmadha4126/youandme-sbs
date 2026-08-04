@@ -1088,6 +1088,13 @@ function ChatPage() {
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
                   Location
                 </button>
+                <button
+                  className="flex items-center gap-3 px-4 py-3 text-left font-medium text-slate-900 active:bg-slate-100"
+                  onClick={() => { setShowAttach(false); docInputRef.current?.click(); }}
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                  Files
+                </button>
               </div>
             </div>
           )}
