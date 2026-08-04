@@ -1369,8 +1369,8 @@ function MessageBubble({
 function ImageViewer({ url, onClose }: { url: string; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl animate-fade-in" onClick={onClose}>
-      <button aria-label="Close" onClick={onClose} className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20" style={{ marginTop: "env(safe-area-inset-top)" }}>
-        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+      <button aria-label="Close" onClick={onClose} className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-lg border-2 border-red-600 bg-black text-red-500 shadow-lg transition hover:bg-red-600 hover:text-black active:scale-95" style={{ marginTop: "env(safe-area-inset-top)" }}>
+        <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
       </button>
       <a
         href={url}
