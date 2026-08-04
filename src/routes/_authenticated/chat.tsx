@@ -500,6 +500,35 @@ function ChatPage() {
     setUploading(false);
   }
 
+  async function sendLocation() {
+    if (!userId) return;
+    if (!("geolocation" in navigator)) {
+      toast.error("Location is not supported on this device");
+      return;
+    }
+    setUploading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const link = `https://www.google.com/maps?q=${latitude.toFixed(6)},${longitude.toFixed(6)}`;
+        const { error } = await supabase.from("messages").insert({
+          sender_id: userId,
+          body: `📍 My current location\n${link}`,
+          image_urls: [],
+          reply_to_id: replyTo?.id ?? null,
+        });
+        if (error) toast.error("Could not send location");
+        else setReplyTo(null);
+        setUploading(false);
+      },
+      () => {
+        setUploading(false);
+        toast.error("Location permission denied");
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  }
+
   // ---- Voice notes (WhatsApp-style) ----
   function stopTracks() {
     recStream.current?.getTracks().forEach((t) => t.stop());
