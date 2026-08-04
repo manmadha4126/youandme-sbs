@@ -1226,7 +1226,9 @@ function MessageBubble({
     swiping.current = false;
   }
 
-  const imgs = m.image_urls || [];
+  const attachments = (m.image_urls || []).map(parseAttachment);
+  const imgs = attachments.filter((a) => a.kind === "image").map((a) => a.path);
+  const docs = attachments.filter((a) => a.kind === "file");
   const gridCols = imgs.length === 1 ? "grid-cols-1" : imgs.length === 2 ? "grid-cols-2" : imgs.length <= 4 ? "grid-cols-2" : "grid-cols-3";
   const reactionShown = Math.abs(dragX) >= 24;
 
