@@ -7,6 +7,25 @@ import { format, isToday, isYesterday } from "date-fns";
 import { CallOverlay, type CallState } from "@/components/CallOverlay";
 import { toast } from "sonner";
 
+// Attachments are stored in messages.image_urls. Plain entries are images;
+// generic files are encoded as `file|<encoded name>|<storage path>`.
+type Attachment = { kind: "image" | "file"; path: string; name: string };
+function parseAttachment(entry: string): Attachment {
+  if (entry.startsWith("file|")) {
+    const [, name, ...rest] = entry.split("|");
+    return { kind: "file", path: rest.join("|"), name: decodeURIComponent(name || "file") };
+  }
+  return { kind: "image", path: entry, name: entry.split("/").pop() || "image" };
+}
+function formatBytes(n: number) {
+  if (!n) return "";
+  const units = ["B", "KB", "MB", "GB"];
+  let i = 0;
+  let v = n;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return `${v.toFixed(v >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
+}
+
 export const Route = createFileRoute("/_authenticated/chat")({
   component: ChatPage,
 });
@@ -191,6 +210,7 @@ function ChatPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -410,7 +430,10 @@ function ChatPage() {
   // Sign URLs for images + voice notes (private bucket)
   useEffect(() => {
     const paths = new Set<string>();
-    messages.forEach((m) => m.image_urls?.forEach((p) => { if (p && !signedUrls[p]) paths.add(p); }));
+    messages.forEach((m) => m.image_urls?.forEach((p) => {
+      const path = parseAttachment(p).path;
+      if (path && !signedUrls[path]) paths.add(path);
+    }));
     messages.forEach((m) => { if (m.audio_url && !signedUrls[m.audio_url]) paths.add(m.audio_url); });
     if (paths.size === 0) return;
     (async () => {
@@ -469,13 +492,19 @@ function ChatPage() {
     if (!userId || files.length === 0) return [];
     const paths: string[] = [];
     for (const file of files) {
-      const ext = file.name.split(".").pop() || "jpg";
+      const ext = file.name.split(".").pop() || "bin";
       const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       const { error } = await supabase.storage.from("chat-images").upload(path, file, {
         cacheControl: "31536000",
-        contentType: file.type,
+        contentType: file.type || "application/octet-stream",
+        upsert: false,
       });
-      if (!error) paths.push(path);
+      if (error) {
+        toast.error(`Could not upload ${file.name}`);
+        continue;
+      }
+      const isImage = file.type.startsWith("image/") || file.type.startsWith("video/");
+      paths.push(isImage ? path : `file|${encodeURIComponent(file.name)}|${path}`);
     }
     return paths;
   }
@@ -820,14 +849,22 @@ function ChatPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Pending images preview */}
+      {/* Pending attachments preview */}
       {pendingImages.length > 0 && (
         <div className="glass flex gap-2 overflow-x-auto border-t border-white/10 px-3 py-2">
           {pendingImages.map((f, i) => {
-            const url = URL.createObjectURL(f);
+            const isMedia = f.type.startsWith("image/") || f.type.startsWith("video/");
             return (
               <div key={i} className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-white/20">
-                <img src={url} alt="" className="h-full w-full object-cover" />
+                {isMedia ? (
+                  <img src={URL.createObjectURL(f)} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-1 bg-white/10 px-1 text-center">
+                    <svg className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                    <span className="w-full truncate text-[9px] leading-tight text-white/80">{f.name}</span>
+                    <span className="text-[9px] text-white/50">{formatBytes(f.size)}</span>
+                  </div>
+                )}
                 <button
                   onClick={() => setPendingImages((prev) => prev.filter((_, x) => x !== i))}
                   className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/70 text-xs text-white"
@@ -839,6 +876,8 @@ function ChatPage() {
           <p className="self-center px-2 text-xs text-white/50">{pendingImages.length} selected</p>
         </div>
       )}
+
+
 
       {/* Emoji row */}
       {showEmojis && (
@@ -959,6 +998,13 @@ function ChatPage() {
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
                   Location
                 </button>
+                <button
+                  className="flex items-center gap-3 px-4 py-3 text-left font-medium text-slate-900 hover:bg-slate-100"
+                  onClick={() => { setShowAttach(false); docInputRef.current?.click(); }}
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                  Files
+                </button>
               </div>
             </>
           )}
@@ -976,6 +1022,13 @@ function ChatPage() {
           type="file"
           accept="image/*,video/*"
           capture="environment"
+          className="hidden"
+          onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
+        />
+        <input
+          ref={docInputRef}
+          type="file"
+          multiple
           className="hidden"
           onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
         />
@@ -1048,6 +1101,13 @@ function ChatPage() {
                 >
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
                   Location
+                </button>
+                <button
+                  className="flex items-center gap-3 px-4 py-3 text-left font-medium text-slate-900 active:bg-slate-100"
+                  onClick={() => { setShowAttach(false); docInputRef.current?.click(); }}
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                  Files
                 </button>
               </div>
             </div>
@@ -1166,7 +1226,9 @@ function MessageBubble({
     swiping.current = false;
   }
 
-  const imgs = m.image_urls || [];
+  const attachments = (m.image_urls || []).map(parseAttachment);
+  const imgs = attachments.filter((a) => a.kind === "image").map((a) => a.path);
+  const docs = attachments.filter((a) => a.kind === "file");
   const gridCols = imgs.length === 1 ? "grid-cols-1" : imgs.length === 2 ? "grid-cols-2" : imgs.length <= 4 ? "grid-cols-2" : "grid-cols-3";
   const reactionShown = Math.abs(dragX) >= 24;
 
@@ -1250,6 +1312,32 @@ function MessageBubble({
                       <div className="grid h-40 w-full place-items-center bg-white/10 text-xs text-white/60 sm:h-52">Loading…</div>
                     )}
                   </button>
+                );
+              })}
+            </div>
+          )}
+          {docs.length > 0 && (
+            <div className="flex flex-col gap-1 p-1">
+              {docs.map((d) => {
+                const url = signedUrls[d.path];
+                return (
+                  <a
+                    key={d.path}
+                    href={url || undefined}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={d.name}
+                    onClick={(e) => { e.stopPropagation(); if (!url) e.preventDefault(); }}
+                    className={`flex items-center gap-3 rounded-2xl px-3 py-2 ${mine ? "bg-black/20" : "bg-black/10"} ${url ? "hover:opacity-90" : "opacity-60"}`}
+                  >
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/20">
+                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px] font-medium">{d.name}</span>
+                      <span className="block text-[11px] opacity-70">{url ? "Tap to open / download" : "Preparing…"}</span>
+                    </span>
+                  </a>
                 );
               })}
             </div>

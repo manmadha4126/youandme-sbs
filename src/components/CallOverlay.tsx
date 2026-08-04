@@ -84,7 +84,10 @@ export function CallOverlay({
     if (!pc || !stream || switching) return;
     const next = facing === "user" ? "environment" : "user";
     setSwitching(true);
+    const oldTracks = stream.getVideoTracks();
     try {
+      // Acquire the new camera BEFORE releasing the current one so the preview
+      // never goes black between tracks.
       let newStream: MediaStream;
       try {
         newStream = await navigator.mediaDevices.getUserMedia({
@@ -94,16 +97,30 @@ export function CallOverlay({
         newStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: next } });
       }
       const newTrack = newStream.getVideoTracks()[0];
-      if (!newTrack) return;
+      if (!newTrack) {
+        newStream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       newTrack.enabled = !camOff;
       const sender = pc.getSenders().find((s) => s.track?.kind === "video");
       if (sender) await sender.replaceTrack(newTrack);
-      stream.getVideoTracks().forEach((t) => {
+      stream.addTrack(newTrack);
+      oldTracks.forEach((t) => {
         t.stop();
         stream.removeTrack(t);
       });
-      stream.addTrack(newTrack);
-      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      // Keep the same MediaStream object attached to the <video>; reassigning
+      // srcObject would restart playback and cause a visible flash.
+      const el = localVideoRef.current;
+      if (el && el.srcObject !== stream) el.srcObject = stream;
+      // Wait for the first frame of the new track before dropping the overlay.
+      await new Promise<void>((resolve) => {
+        if (!el) return resolve();
+        let done = false;
+        const finish = () => { if (!done) { done = true; resolve(); } };
+        el.addEventListener("loadeddata", finish, { once: true });
+        setTimeout(finish, 500);
+      });
       setFacing(next);
     } catch (err) {
       console.error("flip camera failed", err);
@@ -276,14 +293,23 @@ export function CallOverlay({
                 className="h-full w-full object-cover"
                 style={{ transform: facing === "user" ? "scaleX(-1)" : "none" }}
               />
+              {switching && (
+                <div className="absolute inset-0 grid place-items-center bg-black/50 backdrop-blur-sm">
+                  <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                </div>
+              )}
               {callState.status === "in-call" && (
                 <button
                   onClick={flipCamera}
                   disabled={switching}
                   aria-label="Flip camera"
-                  className="absolute bottom-1 right-1 grid h-8 w-8 place-items-center rounded-full bg-black/60 text-white active:scale-95 disabled:opacity-50"
+                  className="absolute bottom-1 right-1 grid h-8 w-8 place-items-center rounded-full bg-black/60 text-white active:scale-95 disabled:opacity-60"
                 >
-                  <SwitchCamera size={16} />
+                  {switching ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  ) : (
+                    <SwitchCamera size={16} />
+                  )}
                 </button>
               )}
             </div>
@@ -325,10 +351,14 @@ export function CallOverlay({
               <button
                 onClick={flipCamera}
                 disabled={switching}
-                aria-label="Flip camera"
-                className="grid h-14 w-14 place-items-center rounded-full bg-white/15 active:scale-95 disabled:opacity-50"
+                aria-label={switching ? "Switching camera" : "Flip camera"}
+                className="grid h-14 w-14 place-items-center rounded-full bg-white/15 active:scale-95 disabled:opacity-60"
               >
-                <SwitchCamera size={22} />
+                {switching ? (
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                ) : (
+                  <SwitchCamera size={22} />
+                )}
               </button>
             )}
             <button onClick={() => endCall(true)} className="grid h-16 w-16 place-items-center rounded-full bg-red-500 shadow-lg active:scale-95">
