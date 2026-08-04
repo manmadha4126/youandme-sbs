@@ -84,7 +84,10 @@ export function CallOverlay({
     if (!pc || !stream || switching) return;
     const next = facing === "user" ? "environment" : "user";
     setSwitching(true);
+    const oldTracks = stream.getVideoTracks();
     try {
+      // Acquire the new camera BEFORE releasing the current one so the preview
+      // never goes black between tracks.
       let newStream: MediaStream;
       try {
         newStream = await navigator.mediaDevices.getUserMedia({
@@ -94,16 +97,30 @@ export function CallOverlay({
         newStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: next } });
       }
       const newTrack = newStream.getVideoTracks()[0];
-      if (!newTrack) return;
+      if (!newTrack) {
+        newStream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       newTrack.enabled = !camOff;
       const sender = pc.getSenders().find((s) => s.track?.kind === "video");
       if (sender) await sender.replaceTrack(newTrack);
-      stream.getVideoTracks().forEach((t) => {
+      stream.addTrack(newTrack);
+      oldTracks.forEach((t) => {
         t.stop();
         stream.removeTrack(t);
       });
-      stream.addTrack(newTrack);
-      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      // Keep the same MediaStream object attached to the <video>; reassigning
+      // srcObject would restart playback and cause a visible flash.
+      const el = localVideoRef.current;
+      if (el && el.srcObject !== stream) el.srcObject = stream;
+      // Wait for the first frame of the new track before dropping the overlay.
+      await new Promise<void>((resolve) => {
+        if (!el) return resolve();
+        let done = false;
+        const finish = () => { if (!done) { done = true; resolve(); } };
+        el.addEventListener("loadeddata", finish, { once: true });
+        setTimeout(finish, 500);
+      });
       setFacing(next);
     } catch (err) {
       console.error("flip camera failed", err);
