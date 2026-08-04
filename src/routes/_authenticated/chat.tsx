@@ -1025,6 +1025,13 @@ function ChatPage() {
           className="hidden"
           onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
         />
+        <input
+          ref={docInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
+        />
         {/* Textarea + mobile inline icons */}
         <div className="relative flex-1">
           <textarea
