@@ -513,26 +513,132 @@ function ChatPage() {
     return paths;
   }
 
+  // ---- Offline queue ----
+  async function queueMessage(item: Omit<OutboxItem, "id" | "createdAt">) {
+    const full: OutboxItem = { ...item, id: newOutboxId(), createdAt: new Date().toISOString() };
+    setQueued(await enqueue(full));
+    toast("Saved — will send when you're back online");
+  }
+
+  const flushOutbox = useCallback(async () => {
+    if (flushingRef.current || typeof navigator === "undefined" || !navigator.onLine) return;
+    flushingRef.current = true;
+    let sent = 0;
+    try {
+      const items = await readOutbox();
+      for (const it of items) {
+        try {
+          if (it.audio) {
+            const ext = it.audio.mime.includes("mp4") || it.audio.mime.includes("aac") ? "m4a" : "webm";
+            const path = `${it.senderId}/voice-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+            const { error: upErr } = await supabase.storage
+              .from("chat-images")
+              .upload(path, it.audio.blob, { cacheControl: "31536000", contentType: it.audio.mime });
+            if (upErr) throw upErr;
+            const { error } = await supabase.from("messages").insert({
+              sender_id: it.senderId,
+              body: null,
+              image_urls: [],
+              audio_url: path,
+              audio_duration: it.audio.secs,
+              reply_to_id: it.replyToId,
+            });
+            if (error) throw error;
+          } else {
+            const paths = it.files.length ? await uploadImages(it.files) : [];
+            if (it.files.length && paths.length !== it.files.length) throw new Error("upload-failed");
+            const { error } = await supabase.from("messages").insert({
+              sender_id: it.senderId,
+              body: it.body,
+              image_urls: paths,
+              reply_to_id: it.replyToId,
+            });
+            if (error) throw error;
+          }
+          setQueued(await dequeue(it.id));
+          sent++;
+        } catch {
+          break; // still offline / failing — keep the rest queued in order
+        }
+      }
+      if (sent > 0) {
+        // Re-sync so delivery/read ticks reflect the server state
+        const { data } = await supabase.from("messages").select("*").order("created_at", { ascending: true });
+        if (data) setMessages(data as Message[]);
+        toast.success(`${sent} queued message${sent > 1 ? "s" : ""} sent`);
+      }
+    } finally {
+      flushingRef.current = false;
+    }
+  }, [userId]);
+
+  // Track connectivity, restore the queue, and flush when back online
+  useEffect(() => {
+    if (!userId) return;
+    setOnline(navigator.onLine);
+    readOutbox().then(setQueued);
+    const onOnline = () => { setOnline(true); void flushOutbox(); };
+    const onOffline = () => setOnline(false);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    void flushOutbox();
+    const retry = setInterval(() => { void flushOutbox(); }, 15_000);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+      clearInterval(retry);
+    };
+  }, [userId, flushOutbox]);
+
   async function sendMessage() {
     if (!userId) return;
     const body = text.trim();
     if (!body && pendingImages.length === 0) return;
+
+    if (!navigator.onLine) {
+      await queueMessage({
+        senderId: userId,
+        body: body || null,
+        files: pendingImages,
+        replyToId: replyTo?.id ?? null,
+      });
+      setText("");
+      setPendingImages([]);
+      setReplyTo(null);
+      setTyping(false);
+      return;
+    }
+
     setUploading(true);
     setTyping(false);
     const imgs = pendingImages.length ? await uploadImages(pendingImages) : [];
-    const { error } = await supabase.from("messages").insert({
-      sender_id: userId,
-      body: body || null,
-      image_urls: imgs,
-      reply_to_id: replyTo?.id ?? null,
-    });
+    const failedUpload = pendingImages.length > 0 && imgs.length !== pendingImages.length;
+    const { error } = failedUpload
+      ? { error: new Error("upload-failed") }
+      : await supabase.from("messages").insert({
+          sender_id: userId,
+          body: body || null,
+          image_urls: imgs,
+          reply_to_id: replyTo?.id ?? null,
+        });
     if (!error) {
+      setText("");
+      setPendingImages([]);
+      setReplyTo(null);
+    } else {
+      await queueMessage({
+        senderId: userId,
+        body: body || null,
+        files: pendingImages,
+        replyToId: replyTo?.id ?? null,
+      });
       setText("");
       setPendingImages([]);
       setReplyTo(null);
     }
     setUploading(false);
   }
+
 
   async function sendLocation() {
     if (!userId) return;
