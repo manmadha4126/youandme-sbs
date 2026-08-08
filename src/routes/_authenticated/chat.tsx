@@ -1316,6 +1316,21 @@ function ChatPage() {
       </div>
       )}
 
+      {/* Media preview before sending */}
+      {showImagePreview && pendingImages.length > 0 && typeof document !== "undefined" && (
+        <MediaPreviewOverlay
+          files={pendingImages}
+          urls={previewObjectUrls}
+          caption={text}
+          setCaption={setText}
+          otherName={otherProfile?.display_name ?? "them"}
+          onClose={() => { setPendingImages([]); setShowImagePreview(false); }}
+          onRemove={(i) => setPendingImages((prev) => prev.filter((_, idx) => idx !== i))}
+          onSend={() => { void sendMessage(); setShowImagePreview(false); }}
+          uploading={uploading}
+        />
+      )}
+
       {/* Full-screen image viewer */}
       {previewOpen && (
         <ImageViewer url={signedUrls[previewOpen] || previewOpen} onClose={() => setPreviewOpen(null)} />
