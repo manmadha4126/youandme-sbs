@@ -181,6 +181,7 @@ function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
   const [pendingImages, setPendingImages] = useState<File[]>([]);
+  const [showImagePreview, setShowImagePreview] = useState(false);
   const [previewOpen, setPreviewOpen] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [otherTyping, setOtherTyping] = useState(false);
