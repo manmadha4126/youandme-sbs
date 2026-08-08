@@ -197,6 +197,9 @@ function ChatPage() {
   const [otherLastSeen, setOtherLastSeen] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
   const [recSecs, setRecSecs] = useState(0);
+  const [online, setOnline] = useState(true);
+  const [queued, setQueued] = useState<OutboxItem[]>([]);
+  const flushingRef = useRef(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recChunks = useRef<Blob[]>([]);
   const recStream = useRef<MediaStream | null>(null);
