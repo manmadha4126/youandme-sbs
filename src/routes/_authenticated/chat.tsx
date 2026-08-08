@@ -969,6 +969,36 @@ function ChatPage() {
           </div>
         ))}
 
+        {/* Queued (offline) messages waiting to sync */}
+        {queued.map((q) => (
+          <div key={q.id} className="flex justify-end">
+            <div className="max-w-[78%] rounded-3xl rounded-br-md bg-[oklch(0.45_0.16_265)]/80 px-4 py-2 text-white shadow-lg">
+              {q.audio ? (
+                <p className="text-[15px]">🎤 Voice message</p>
+              ) : (
+                <>
+                  {q.body && <p className="whitespace-pre-wrap break-words text-[15px] leading-snug">{q.body}</p>}
+                  {q.files.length > 0 && (
+                    <p className="text-[13px] opacity-90">
+                      📎 {q.files.length} file{q.files.length > 1 ? "s" : ""}
+                    </p>
+                  )}
+                </>
+              )}
+              <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px] text-white/80">
+                <span>{formatTime(q.createdAt)}</span>
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2" />
+                </svg>
+                <span>waiting</span>
+              </div>
+            </div>
+          </div>
+        ))}
+
+
+
         {otherTyping && (
           <div className="flex justify-start">
             <div className="glass flex items-center gap-2 rounded-full px-4 py-2 text-xs font-medium text-white/90">
