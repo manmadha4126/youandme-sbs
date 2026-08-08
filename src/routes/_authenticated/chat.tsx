@@ -1658,6 +1658,93 @@ function MessageBubble({
   );
 }
 
+type MediaPreviewOverlayProps = {
+  files: File[];
+  urls: string[];
+  caption: string;
+  setCaption: (s: string) => void;
+  otherName: string;
+  onClose: () => void;
+  onRemove: (i: number) => void;
+  onSend: () => void;
+  uploading: boolean;
+};
+
+function MediaPreviewOverlay({
+  files,
+  urls,
+  caption,
+  setCaption,
+  otherName,
+  onClose,
+  onRemove,
+  onSend,
+  uploading,
+}: MediaPreviewOverlayProps) {
+  return createPortal(
+    <div className="fixed inset-0 z-[60] flex flex-col bg-black/95">
+      <div className="flex items-center justify-between px-4 py-3" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+        <button
+          onClick={onClose}
+          aria-label="Cancel"
+          className="grid h-10 w-10 place-items-center rounded-full text-white/90 hover:bg-white/10 active:scale-95"
+        >
+          <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+        </button>
+        <h3 className="text-base font-semibold text-white">Send to {otherName}</h3>
+        <span className="text-sm font-medium text-white/70">{files.length}</span>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className={`grid gap-2 ${files.length === 1 ? "grid-cols-1" : files.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+          {files.map((f, i) => (
+            <div key={i} className="relative overflow-hidden rounded-xl bg-black">
+              {f.type.startsWith("video/") ? (
+                <video src={urls[i]} className="aspect-square w-full object-cover" preload="metadata" />
+              ) : (
+                <img src={urls[i]} alt="" className="aspect-square w-full object-cover" />
+              )}
+              <button
+                onClick={() => onRemove(i)}
+                aria-label="Remove"
+                className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/70 text-sm text-white shadow active:scale-95"
+              >
+                ×
+              </button>
+              <span className="absolute bottom-1.5 left-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white/90">
+                {f.type.startsWith("video/") ? "VIDEO" : "PHOTO"}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="flex items-end gap-2 border-t border-white/10 bg-[#111216] p-3" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <textarea
+          value={caption}
+          onChange={(e) => setCaption(e.target.value)}
+          placeholder="Add a caption…"
+          rows={1}
+          autoFocus
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); } }}
+          className="max-h-28 min-h-11 flex-1 resize-none rounded-2xl border border-white/10 bg-[#1f2329] px-4 py-3 text-[15px] text-white placeholder-white/50 outline-none focus:border-white/30"
+        />
+        <button
+          onClick={onSend}
+          disabled={uploading}
+          aria-label="Send"
+          className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#25D366] text-white shadow-lg transition active:scale-95 disabled:opacity-50"
+        >
+          {uploading ? (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+          ) : (
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+          )}
+        </button>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 
 function ImageViewer({ url, onClose }: { url: string; onClose: () => void }) {
   return (
