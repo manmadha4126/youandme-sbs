@@ -407,6 +407,15 @@ function ChatPage() {
   // Keep last-seen ref in sync for the staleness check
   useEffect(() => { otherLastSeenRef.current = otherLastSeen; }, [otherLastSeen]);
 
+  // Preview selected media before sending
+  const previewObjectUrls = useMemo(() => pendingImages.map((f) => URL.createObjectURL(f)), [pendingImages]);
+  useEffect(() => () => previewObjectUrls.forEach((u) => URL.revokeObjectURL(u)), [previewObjectUrls]);
+  useEffect(() => {
+    const hasMedia = pendingImages.some((f) => f.type.startsWith("image/") || f.type.startsWith("video/"));
+    if (hasMedia && !showImagePreview) setShowImagePreview(true);
+    if (pendingImages.length === 0) setShowImagePreview(false);
+  }, [pendingImages, showImagePreview]);
+
   // Mark received messages as read — only while the chat is actually being viewed
   useEffect(() => {
     if (!userId) return;
