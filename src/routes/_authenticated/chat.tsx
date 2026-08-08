@@ -6,6 +6,7 @@ import { ArrowLeft, Phone, Video, MoreVertical } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { CallOverlay, type CallState } from "@/components/CallOverlay";
 import { toast } from "sonner";
+import { readOutbox, enqueue, dequeue, newOutboxId, type OutboxItem } from "@/lib/outbox";
 
 // Attachments are stored in messages.image_urls. Plain entries are images;
 // generic files are encoded as `file|<encoded name>|<storage path>`.
