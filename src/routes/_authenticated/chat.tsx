@@ -728,6 +728,17 @@ function ChatPage() {
 
   async function sendVoice(blob: Blob, secs: number, mime: string) {
     if (!userId) return;
+    if (!navigator.onLine) {
+      await queueMessage({
+        senderId: userId,
+        body: null,
+        files: [],
+        replyToId: replyTo?.id ?? null,
+        audio: { blob, secs, mime },
+      });
+      setReplyTo(null);
+      return;
+    }
     setUploading(true);
     const ext = mime.includes("mp4") || mime.includes("aac") ? "m4a" : "webm";
     const path = `${userId}/voice-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -736,7 +747,7 @@ function ChatPage() {
       contentType: mime,
     });
     if (!upErr) {
-      await supabase.from("messages").insert({
+      const { error } = await supabase.from("messages").insert({
         sender_id: userId,
         body: null,
         image_urls: [],
@@ -744,6 +755,12 @@ function ChatPage() {
         audio_duration: secs,
         reply_to_id: replyTo?.id ?? null,
       });
+      if (error) {
+        await queueMessage({ senderId: userId, body: null, files: [], replyToId: replyTo?.id ?? null, audio: { blob, secs, mime } });
+      }
+      setReplyTo(null);
+    } else {
+      await queueMessage({ senderId: userId, body: null, files: [], replyToId: replyTo?.id ?? null, audio: { blob, secs, mime } });
       setReplyTo(null);
     }
     setUploading(false);
@@ -758,8 +775,17 @@ function ChatPage() {
   async function editMessage(id: string, newBody: string) {
     const body = newBody.trim();
     if (!body) return;
-    await supabase.from("messages").update({ body }).eq("id", id);
+    const before = messages.find((m) => m.id === id)?.body ?? null;
+    if (before === body) return;
+    // Optimistic update — created_at stays untouched so the original time is kept
+    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, body } : m)));
+    const { data, error } = await supabase.from("messages").update({ body }).eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, body: before } : m)));
+      toast.error(navigator.onLine ? "Could not update the message" : "You're offline — try again once connected");
+    }
   }
+
 
   async function copyText(t: string) {
     try { await navigator.clipboard.writeText(t); } catch {}
