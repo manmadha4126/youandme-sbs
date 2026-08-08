@@ -1352,6 +1352,8 @@ function MessageBubble({
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(m.body ?? "");
   const [showDetails, setShowDetails] = useState(false);
+  // Keep the draft in sync when the message body changes (e.g. after saving an edit)
+  useEffect(() => { if (!editing) setEditText(m.body ?? ""); }, [m.body, editing]);
   const [dragX, setDragX] = useState(0);
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startX = useRef<number | null>(null);
