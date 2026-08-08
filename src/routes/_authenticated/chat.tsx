@@ -6,6 +6,7 @@ import { ArrowLeft, Phone, Video, MoreVertical } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { CallOverlay, type CallState } from "@/components/CallOverlay";
 import { toast } from "sonner";
+import { readOutbox, enqueue, dequeue, newOutboxId, type OutboxItem } from "@/lib/outbox";
 
 // Attachments are stored in messages.image_urls. Plain entries are images;
 // generic files are encoded as `file|<encoded name>|<storage path>`.
@@ -196,6 +197,9 @@ function ChatPage() {
   const [otherLastSeen, setOtherLastSeen] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
   const [recSecs, setRecSecs] = useState(0);
+  const [online, setOnline] = useState(true);
+  const [queued, setQueued] = useState<OutboxItem[]>([]);
+  const flushingRef = useRef(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recChunks = useRef<Blob[]>([]);
   const recStream = useRef<MediaStream | null>(null);
@@ -509,26 +513,132 @@ function ChatPage() {
     return paths;
   }
 
+  // ---- Offline queue ----
+  async function queueMessage(item: Omit<OutboxItem, "id" | "createdAt">) {
+    const full: OutboxItem = { ...item, id: newOutboxId(), createdAt: new Date().toISOString() };
+    setQueued(await enqueue(full));
+    toast("Saved — will send when you're back online");
+  }
+
+  const flushOutbox = useCallback(async () => {
+    if (flushingRef.current || typeof navigator === "undefined" || !navigator.onLine) return;
+    flushingRef.current = true;
+    let sent = 0;
+    try {
+      const items = await readOutbox();
+      for (const it of items) {
+        try {
+          if (it.audio) {
+            const ext = it.audio.mime.includes("mp4") || it.audio.mime.includes("aac") ? "m4a" : "webm";
+            const path = `${it.senderId}/voice-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+            const { error: upErr } = await supabase.storage
+              .from("chat-images")
+              .upload(path, it.audio.blob, { cacheControl: "31536000", contentType: it.audio.mime });
+            if (upErr) throw upErr;
+            const { error } = await supabase.from("messages").insert({
+              sender_id: it.senderId,
+              body: null,
+              image_urls: [],
+              audio_url: path,
+              audio_duration: it.audio.secs,
+              reply_to_id: it.replyToId,
+            });
+            if (error) throw error;
+          } else {
+            const paths = it.files.length ? await uploadImages(it.files) : [];
+            if (it.files.length && paths.length !== it.files.length) throw new Error("upload-failed");
+            const { error } = await supabase.from("messages").insert({
+              sender_id: it.senderId,
+              body: it.body,
+              image_urls: paths,
+              reply_to_id: it.replyToId,
+            });
+            if (error) throw error;
+          }
+          setQueued(await dequeue(it.id));
+          sent++;
+        } catch {
+          break; // still offline / failing — keep the rest queued in order
+        }
+      }
+      if (sent > 0) {
+        // Re-sync so delivery/read ticks reflect the server state
+        const { data } = await supabase.from("messages").select("*").order("created_at", { ascending: true });
+        if (data) setMessages(data as Message[]);
+        toast.success(`${sent} queued message${sent > 1 ? "s" : ""} sent`);
+      }
+    } finally {
+      flushingRef.current = false;
+    }
+  }, [userId]);
+
+  // Track connectivity, restore the queue, and flush when back online
+  useEffect(() => {
+    if (!userId) return;
+    setOnline(navigator.onLine);
+    readOutbox().then(setQueued);
+    const onOnline = () => { setOnline(true); void flushOutbox(); };
+    const onOffline = () => setOnline(false);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    void flushOutbox();
+    const retry = setInterval(() => { void flushOutbox(); }, 15_000);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+      clearInterval(retry);
+    };
+  }, [userId, flushOutbox]);
+
   async function sendMessage() {
     if (!userId) return;
     const body = text.trim();
     if (!body && pendingImages.length === 0) return;
+
+    if (!navigator.onLine) {
+      await queueMessage({
+        senderId: userId,
+        body: body || null,
+        files: pendingImages,
+        replyToId: replyTo?.id ?? null,
+      });
+      setText("");
+      setPendingImages([]);
+      setReplyTo(null);
+      setTyping(false);
+      return;
+    }
+
     setUploading(true);
     setTyping(false);
     const imgs = pendingImages.length ? await uploadImages(pendingImages) : [];
-    const { error } = await supabase.from("messages").insert({
-      sender_id: userId,
-      body: body || null,
-      image_urls: imgs,
-      reply_to_id: replyTo?.id ?? null,
-    });
+    const failedUpload = pendingImages.length > 0 && imgs.length !== pendingImages.length;
+    const { error } = failedUpload
+      ? { error: new Error("upload-failed") }
+      : await supabase.from("messages").insert({
+          sender_id: userId,
+          body: body || null,
+          image_urls: imgs,
+          reply_to_id: replyTo?.id ?? null,
+        });
     if (!error) {
+      setText("");
+      setPendingImages([]);
+      setReplyTo(null);
+    } else {
+      await queueMessage({
+        senderId: userId,
+        body: body || null,
+        files: pendingImages,
+        replyToId: replyTo?.id ?? null,
+      });
       setText("");
       setPendingImages([]);
       setReplyTo(null);
     }
     setUploading(false);
   }
+
 
   async function sendLocation() {
     if (!userId) return;
@@ -618,6 +728,17 @@ function ChatPage() {
 
   async function sendVoice(blob: Blob, secs: number, mime: string) {
     if (!userId) return;
+    if (!navigator.onLine) {
+      await queueMessage({
+        senderId: userId,
+        body: null,
+        files: [],
+        replyToId: replyTo?.id ?? null,
+        audio: { blob, secs, mime },
+      });
+      setReplyTo(null);
+      return;
+    }
     setUploading(true);
     const ext = mime.includes("mp4") || mime.includes("aac") ? "m4a" : "webm";
     const path = `${userId}/voice-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -626,7 +747,7 @@ function ChatPage() {
       contentType: mime,
     });
     if (!upErr) {
-      await supabase.from("messages").insert({
+      const { error } = await supabase.from("messages").insert({
         sender_id: userId,
         body: null,
         image_urls: [],
@@ -634,6 +755,12 @@ function ChatPage() {
         audio_duration: secs,
         reply_to_id: replyTo?.id ?? null,
       });
+      if (error) {
+        await queueMessage({ senderId: userId, body: null, files: [], replyToId: replyTo?.id ?? null, audio: { blob, secs, mime } });
+      }
+      setReplyTo(null);
+    } else {
+      await queueMessage({ senderId: userId, body: null, files: [], replyToId: replyTo?.id ?? null, audio: { blob, secs, mime } });
       setReplyTo(null);
     }
     setUploading(false);
@@ -648,8 +775,17 @@ function ChatPage() {
   async function editMessage(id: string, newBody: string) {
     const body = newBody.trim();
     if (!body) return;
-    await supabase.from("messages").update({ body }).eq("id", id);
+    const before = messages.find((m) => m.id === id)?.body ?? null;
+    if (before === body) return;
+    // Optimistic update — created_at stays untouched so the original time is kept
+    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, body } : m)));
+    const { data, error } = await supabase.from("messages").update({ body }).eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, body: before } : m)));
+      toast.error(navigator.onLine ? "Could not update the message" : "You're offline — try again once connected");
+    }
   }
+
 
   async function copyText(t: string) {
     try { await navigator.clipboard.writeText(t); } catch {}
@@ -790,6 +926,18 @@ function ChatPage() {
         </div>
       )}
 
+      {(!online || queued.length > 0) && (
+        <div className="flex items-center justify-center gap-2 bg-[#1f2126] px-3 py-1.5 text-[12px] font-semibold text-white">
+          <span className={`h-2 w-2 rounded-full ${online ? "bg-amber-400" : "bg-red-400"}`} />
+          {online
+            ? `Syncing ${queued.length} queued message${queued.length > 1 ? "s" : ""}…`
+            : queued.length > 0
+              ? `Offline — ${queued.length} message${queued.length > 1 ? "s" : ""} will send when reconnected`
+              : "You're offline — messages will be queued"}
+        </div>
+      )}
+
+
       {/* Messages */}
       <div
         ref={scrollRef}
@@ -832,6 +980,36 @@ function ChatPage() {
             })}
           </div>
         ))}
+
+        {/* Queued (offline) messages waiting to sync */}
+        {queued.map((q) => (
+          <div key={q.id} className="flex justify-end">
+            <div className="max-w-[78%] rounded-3xl rounded-br-md bg-[oklch(0.45_0.16_265)]/80 px-4 py-2 text-white shadow-lg">
+              {q.audio ? (
+                <p className="text-[15px]">🎤 Voice message</p>
+              ) : (
+                <>
+                  {q.body && <p className="whitespace-pre-wrap break-words text-[15px] leading-snug">{q.body}</p>}
+                  {q.files.length > 0 && (
+                    <p className="text-[13px] opacity-90">
+                      📎 {q.files.length} file{q.files.length > 1 ? "s" : ""}
+                    </p>
+                  )}
+                </>
+              )}
+              <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px] text-white/80">
+                <span>{formatTime(q.createdAt)}</span>
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2" />
+                </svg>
+                <span>waiting</span>
+              </div>
+            </div>
+          </div>
+        ))}
+
+
 
         {otherTyping && (
           <div className="flex justify-start">
@@ -1174,6 +1352,8 @@ function MessageBubble({
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(m.body ?? "");
   const [showDetails, setShowDetails] = useState(false);
+  // Keep the draft in sync when the message body changes (e.g. after saving an edit)
+  useEffect(() => { if (!editing) setEditText(m.body ?? ""); }, [m.body, editing]);
   const [dragX, setDragX] = useState(0);
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startX = useRef<number | null>(null);
