@@ -926,6 +926,18 @@ function ChatPage() {
         </div>
       )}
 
+      {(!online || queued.length > 0) && (
+        <div className="flex items-center justify-center gap-2 bg-[#1f2126] px-3 py-1.5 text-[12px] font-semibold text-white">
+          <span className={`h-2 w-2 rounded-full ${online ? "bg-amber-400" : "bg-red-400"}`} />
+          {online
+            ? `Syncing ${queued.length} queued message${queued.length > 1 ? "s" : ""}…`
+            : queued.length > 0
+              ? `Offline — ${queued.length} message${queued.length > 1 ? "s" : ""} will send when reconnected`
+              : "You're offline — messages will be queued"}
+        </div>
+      )}
+
+
       {/* Messages */}
       <div
         ref={scrollRef}
