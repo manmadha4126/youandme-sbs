@@ -6,7 +6,7 @@ import { ArrowLeft, Phone, Video, MoreVertical } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { CallOverlay, type CallState } from "@/components/CallOverlay";
 import { toast } from "sonner";
-import { cacheRemote, getCachedUrl, putCachedBlob } from "@/lib/media-cache";
+import { cacheRemote, getCachedBlob, getCachedUrl, putCachedBlob } from "@/lib/media-cache";
 import { readOutbox, enqueue, dequeue, newOutboxId, type OutboxItem } from "@/lib/outbox";
 
 // Attachments are stored in messages.image_urls. Plain entries are images;
@@ -1818,23 +1818,63 @@ function MediaPreviewOverlay({
 }
 
 
-function ImageViewer({ url, onClose }: { url: string; onClose: () => void }) {
+function ImageViewer({
+  paths,
+  index,
+  urls,
+  onIndexChange,
+  onClose,
+}: {
+  paths: string[];
+  index: number;
+  urls: Record<string, string>;
+  onIndexChange: (i: number) => void;
+  onClose: () => void;
+}) {
   const [zoomed, setZoomed] = useState(false);
   const [saving, setSaving] = useState(false);
+  const swipeX = useRef<number | null>(null);
+  const path = paths[index];
+  const url = urls[path] || path;
+  const many = paths.length > 1;
+
+  const go = useCallback(
+    (dir: number) => {
+      const next = index + dir;
+      if (next < 0 || next >= paths.length) return;
+      setZoomed(false);
+      onIndexChange(next);
+    },
+    [index, paths.length, onIndexChange],
+  );
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowRight") go(1);
+      if (e.key === "ArrowLeft") go(-1);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [go, onClose]);
 
   async function download(e: React.MouseEvent) {
     e.stopPropagation();
     if (saving) return;
     setSaving(true);
     try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("fetch failed");
-      const blob = await res.blob();
+      // Offline-friendly: use the cached blob when we already have one.
+      let blob = await getCachedBlob(path);
+      if (!blob) {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("fetch failed");
+        blob = await res.blob();
+        await putCachedBlob(path, blob);
+      }
       const ext = (blob.type.split("/")[1] || "jpg").split(";")[0];
       const filename = `youandme-${Date.now()}.${ext}`;
       const file = new File([blob], filename, { type: blob.type || "image/jpeg" });
 
-      // Mobile: share sheet lets the user save straight to the gallery / photos
       const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean };
       if (nav.share && nav.canShare?.({ files: [file] })) {
         try {
@@ -1863,7 +1903,17 @@ function ImageViewer({ url, onClose }: { url: string; onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black/95 animate-fade-in" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black/95 animate-fade-in"
+      onClick={onClose}
+      onTouchStart={(e) => { swipeX.current = e.touches[0].clientX; }}
+      onTouchEnd={(e) => {
+        if (swipeX.current == null || zoomed) return;
+        const dx = e.changedTouches[0].clientX - swipeX.current;
+        swipeX.current = null;
+        if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
+      }}
+    >
       <button aria-label="Close" onClick={onClose} className="fixed right-4 top-4 z-10 grid h-11 w-11 place-items-center rounded-lg border-2 border-red-600 bg-black text-red-500 shadow-lg transition hover:bg-red-600 hover:text-black active:scale-95" style={{ marginTop: "env(safe-area-inset-top)" }}>
         <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
       </button>
@@ -1881,13 +1931,55 @@ function ImageViewer({ url, onClose }: { url: string; onClose: () => void }) {
           <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
         )}
       </button>
+
+      {many && (
+        <span className="fixed left-1/2 top-6 z-10 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-sm font-medium text-white/90" style={{ marginTop: "env(safe-area-inset-top)" }}>
+          {index + 1} / {paths.length}
+        </span>
+      )}
+
+      {many && index > 0 && (
+        <button
+          aria-label="Previous image"
+          onClick={(e) => { e.stopPropagation(); go(-1); }}
+          className="fixed left-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-95"
+        >
+          <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+        </button>
+      )}
+      {many && index < paths.length - 1 && (
+        <button
+          aria-label="Next image"
+          onClick={(e) => { e.stopPropagation(); go(1); }}
+          className="fixed right-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/15 text-white hover:bg-white/25 active:scale-95"
+        >
+          <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+        </button>
+      )}
+
       <img
+        key={path}
         src={url}
         alt=""
         onClick={(e) => { e.stopPropagation(); setZoomed((z) => !z); }}
-        className={`touch-manipulation select-none rounded-2xl transition-transform duration-200 ${zoomed ? "max-w-none cursor-zoom-out object-contain" : "max-h-[92vh] max-w-[96vw] cursor-zoom-in object-contain"}`}
+        className={`touch-manipulation select-none rounded-2xl object-contain transition-transform duration-200 ${zoomed ? "max-w-none cursor-zoom-out" : "max-h-[92vh] max-w-[96vw] cursor-zoom-in"}`}
         style={{ touchAction: "pinch-zoom", ...(zoomed ? { height: "auto", width: "180vw", maxHeight: "none" } : {}) }}
       />
+
+      {many && (
+        <div className="fixed bottom-4 left-1/2 z-10 flex max-w-[92vw] -translate-x-1/2 gap-2 overflow-x-auto rounded-2xl bg-black/60 p-2" style={{ marginBottom: "env(safe-area-inset-bottom)" }} onClick={(e) => e.stopPropagation()}>
+          {paths.map((p, i) => (
+            <button
+              key={p}
+              onClick={() => { setZoomed(false); onIndexChange(i); }}
+              className={`h-14 w-14 shrink-0 overflow-hidden rounded-xl border-2 ${i === index ? "border-white" : "border-transparent opacity-60"}`}
+              aria-label={`Image ${i + 1}`}
+            >
+              {urls[p] ? <img src={urls[p]} alt="" className="h-full w-full object-cover" /> : <span className="block h-full w-full bg-white/10" />}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
