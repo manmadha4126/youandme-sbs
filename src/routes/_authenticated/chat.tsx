@@ -6,6 +6,7 @@ import { ArrowLeft, Phone, Video, MoreVertical } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { CallOverlay, type CallState } from "@/components/CallOverlay";
 import { toast } from "sonner";
+import { cacheRemote, getCachedUrl, putCachedBlob } from "@/lib/media-cache";
 import { readOutbox, enqueue, dequeue, newOutboxId, type OutboxItem } from "@/lib/outbox";
 
 // Attachments are stored in messages.image_urls. Plain entries are images;
@@ -182,7 +183,7 @@ function ChatPage() {
   const [text, setText] = useState("");
   const [pendingImages, setPendingImages] = useState<File[]>([]);
   const [showImagePreview, setShowImagePreview] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState<string | null>(null);
+  const [gallery, setGallery] = useState<{ paths: string[]; index: number } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [otherTyping, setOtherTyping] = useState(false);
   const [otherOnline, setOtherOnline] = useState(false);
@@ -467,6 +468,42 @@ function ChatPage() {
       }
     })();
   }, [messages, signedUrls]);
+
+  // Keep a local copy of every image/voice/file blob so media stays viewable
+  // and downloadable offline.
+  const [localUrls, setLocalUrls] = useState<Record<string, string>>({});
+  const allPaths = useMemo(() => {
+    const set = new Set<string>();
+    messages.forEach((m) => {
+      m.image_urls?.forEach((p) => { const path = parseAttachment(p).path; if (path) set.add(path); });
+      if (m.audio_url) set.add(m.audio_url);
+    });
+    return Array.from(set);
+  }, [messages]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      for (const path of allPaths) {
+        if (localUrls[path]) continue;
+        const cached = await getCachedUrl(path);
+        if (cached) {
+          if (cancelled) return;
+          setLocalUrls((prev) => (prev[path] ? prev : { ...prev, [path]: cached }));
+          continue;
+        }
+        const remote = signedUrls[path];
+        if (!remote) continue;
+        const url = await cacheRemote(path, remote);
+        if (cancelled) return;
+        if (url) setLocalUrls((prev) => (prev[path] ? prev : { ...prev, [path]: url }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [allPaths, signedUrls, localUrls]);
+
+  // Prefer the locally cached blob (instant + offline), fall back to signed URL.
+  const mediaUrls = useMemo(() => ({ ...signedUrls, ...localUrls }), [signedUrls, localUrls]);
 
   const messagesById = useMemo(() => {
     const map: Record<string, Message> = {};
@@ -986,8 +1023,8 @@ function ChatPage() {
                   m={m}
                   parent={parent}
                   parentAuthor={parentAuthor?.display_name}
-                  signedUrls={signedUrls}
-                  onOpenImage={setPreviewOpen}
+                  signedUrls={mediaUrls}
+                  onOpenImage={(paths, index) => setGallery({ paths, index })}
                   onDelete={() => deleteMessage(m.id)}
                   onCopy={() => m.body && copyText(m.body)}
                   onReply={() => { setReplyTo(m); textareaRef.current?.focus(); }}
@@ -1339,8 +1376,14 @@ function ChatPage() {
       )}
 
       {/* Full-screen image viewer */}
-      {previewOpen && (
-        <ImageViewer url={signedUrls[previewOpen] || previewOpen} onClose={() => setPreviewOpen(null)} />
+      {gallery && (
+        <ImageViewer
+          paths={gallery.paths}
+          index={gallery.index}
+          urls={mediaUrls}
+          onIndexChange={(i) => setGallery((g) => (g ? { ...g, index: i } : g))}
+          onClose={() => setGallery(null)}
+        />
       )}
 
       {/* Voice / video call overlay */}
@@ -1374,7 +1417,7 @@ function MessageBubble({
   parent?: Message;
   parentAuthor?: string;
   signedUrls: Record<string, string>;
-  onOpenImage: (path: string) => void;
+  onOpenImage: (paths: string[], index: number) => void;
   onDelete: () => void;
   onCopy: () => void;
   onReply: () => void;
@@ -1505,12 +1548,12 @@ function MessageBubble({
           )}
           {imgs.length > 0 && (
             <div className={`grid gap-1 p-1 ${gridCols}`}>
-              {imgs.map((path) => {
+              {imgs.map((path, i) => {
                 const url = signedUrls[path];
                 return (
                   <button
                     key={path}
-                    onClick={() => onOpenImage(path)}
+                    onClick={() => onOpenImage(imgs, i)}
                     className="group relative overflow-hidden rounded-2xl"
                   >
                     {url ? (
