@@ -408,8 +408,15 @@ function ChatPage() {
   useEffect(() => { otherLastSeenRef.current = otherLastSeen; }, [otherLastSeen]);
 
   // Preview selected media before sending
-  const previewObjectUrls = useMemo(() => pendingImages.map((f) => URL.createObjectURL(f)), [pendingImages]);
-  useEffect(() => () => previewObjectUrls.forEach((u) => URL.revokeObjectURL(u)), [previewObjectUrls]);
+  // Object URLs for the media preview. Created in an effect (not useMemo) so that
+  // React's double-invoked effects in dev can't revoke URLs that are still in use.
+  const [previewObjectUrls, setPreviewObjectUrls] = useState<string[]>([]);
+  useEffect(() => {
+    if (pendingImages.length === 0) { setPreviewObjectUrls([]); return; }
+    const urls = pendingImages.map((f) => URL.createObjectURL(f));
+    setPreviewObjectUrls(urls);
+    return () => { urls.forEach((u) => URL.revokeObjectURL(u)); };
+  }, [pendingImages]);
   useEffect(() => {
     const hasMedia = pendingImages.some((f) => f.type.startsWith("image/") || f.type.startsWith("video/"));
     if (hasMedia && !showImagePreview) setShowImagePreview(true);
@@ -1459,7 +1466,7 @@ function MessageBubble({
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         onTouchCancel={onTouchEnd}
-        className="relative max-w-[82%] sm:max-w-[70%]"
+        className={`relative ${imgs.length > 0 ? "w-[85%] max-w-[85%] sm:w-auto sm:max-w-[60%]" : "max-w-[82%] sm:max-w-[70%]"}`}
         style={{ transform: `translateX(${dragX}px)`, transition: dragX === 0 ? "transform 0.2s ease-out" : "none" }}
       >
         <button
@@ -1511,10 +1518,14 @@ function MessageBubble({
                         src={url}
                         loading="lazy"
                         alt=""
-                        className="h-40 w-full object-cover transition-transform group-hover:scale-105 sm:h-52"
+                        className={
+                          imgs.length === 1
+                            ? "max-h-[60vh] w-full object-cover transition-transform group-hover:scale-[1.02]"
+                            : "h-44 w-full object-cover transition-transform group-hover:scale-105 sm:h-56"
+                        }
                       />
                     ) : (
-                      <div className="grid h-40 w-full place-items-center bg-white/10 text-xs text-white/60 sm:h-52">Loading…</div>
+                      <div className={`grid w-full place-items-center bg-white/10 text-xs text-white/60 ${imgs.length === 1 ? "h-64 sm:h-80" : "h-44 sm:h-56"}`}>Loading…</div>
                     )}
                   </button>
                 );
@@ -1694,29 +1705,47 @@ function MediaPreviewOverlay({
         <h3 className="text-base font-semibold text-white">Send to {otherName}</h3>
         <span className="text-sm font-medium text-white/70">{files.length}</span>
       </div>
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className={`grid gap-2 ${files.length === 1 ? "grid-cols-1" : files.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
-          {files.map((f, i) => (
-            <div key={i} className="relative overflow-hidden rounded-xl bg-black">
-              {f.type.startsWith("video/") ? (
-                <video src={urls[i]} className="aspect-square w-full object-cover" preload="metadata" />
-              ) : (
-                <img src={urls[i]} alt="" className="aspect-square w-full object-cover" />
-              )}
-              <button
-                onClick={() => onRemove(i)}
-                aria-label="Remove"
-                className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/70 text-sm text-white shadow active:scale-95"
-              >
-                ×
-              </button>
-              <span className="absolute bottom-1.5 left-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white/90">
-                {f.type.startsWith("video/") ? "VIDEO" : "PHOTO"}
-              </span>
-            </div>
-          ))}
-        </div>
+      <div className="flex flex-1 items-center justify-center overflow-y-auto p-3">
+        {files.length === 1 ? (
+          <div className="relative flex max-h-full w-full items-center justify-center">
+            {files[0].type.startsWith("video/") ? (
+              <video src={urls[0]} className="max-h-[70vh] w-auto max-w-full rounded-xl object-contain" controls playsInline preload="metadata" />
+            ) : (
+              <img src={urls[0]} alt="" className="max-h-[70vh] w-auto max-w-full rounded-xl object-contain" />
+            )}
+            <button
+              onClick={() => onRemove(0)}
+              aria-label="Remove"
+              className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-black/70 text-white shadow active:scale-95"
+            >
+              ×
+            </button>
+          </div>
+        ) : (
+          <div className={`grid w-full gap-2 self-start ${files.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+            {files.map((f, i) => (
+              <div key={i} className="relative overflow-hidden rounded-xl bg-black">
+                {f.type.startsWith("video/") ? (
+                  <video src={urls[i]} className="aspect-square w-full object-contain" preload="metadata" />
+                ) : (
+                  <img src={urls[i]} alt="" className="aspect-square w-full object-contain" />
+                )}
+                <button
+                  onClick={() => onRemove(i)}
+                  aria-label="Remove"
+                  className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/70 text-sm text-white shadow active:scale-95"
+                >
+                  ×
+                </button>
+                <span className="absolute bottom-1.5 left-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white/90">
+                  {f.type.startsWith("video/") ? "VIDEO" : "PHOTO"}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
       <div className="flex items-end gap-2 border-t border-white/10 bg-[#111216] p-3" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         <textarea
           value={caption}
