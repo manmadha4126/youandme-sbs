@@ -1701,29 +1701,47 @@ function MediaPreviewOverlay({
         <h3 className="text-base font-semibold text-white">Send to {otherName}</h3>
         <span className="text-sm font-medium text-white/70">{files.length}</span>
       </div>
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className={`grid gap-2 ${files.length === 1 ? "grid-cols-1" : files.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
-          {files.map((f, i) => (
-            <div key={i} className="relative overflow-hidden rounded-xl bg-black">
-              {f.type.startsWith("video/") ? (
-                <video src={urls[i]} className="aspect-square w-full object-cover" preload="metadata" />
-              ) : (
-                <img src={urls[i]} alt="" className="aspect-square w-full object-cover" />
-              )}
-              <button
-                onClick={() => onRemove(i)}
-                aria-label="Remove"
-                className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/70 text-sm text-white shadow active:scale-95"
-              >
-                ×
-              </button>
-              <span className="absolute bottom-1.5 left-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white/90">
-                {f.type.startsWith("video/") ? "VIDEO" : "PHOTO"}
-              </span>
-            </div>
-          ))}
-        </div>
+      <div className="flex flex-1 items-center justify-center overflow-y-auto p-3">
+        {files.length === 1 ? (
+          <div className="relative flex max-h-full w-full items-center justify-center">
+            {files[0].type.startsWith("video/") ? (
+              <video src={urls[0]} className="max-h-[70vh] w-auto max-w-full rounded-xl object-contain" controls playsInline preload="metadata" />
+            ) : (
+              <img src={urls[0]} alt="" className="max-h-[70vh] w-auto max-w-full rounded-xl object-contain" />
+            )}
+            <button
+              onClick={() => onRemove(0)}
+              aria-label="Remove"
+              className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-black/70 text-white shadow active:scale-95"
+            >
+              ×
+            </button>
+          </div>
+        ) : (
+          <div className={`grid w-full gap-2 self-start ${files.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+            {files.map((f, i) => (
+              <div key={i} className="relative overflow-hidden rounded-xl bg-black">
+                {f.type.startsWith("video/") ? (
+                  <video src={urls[i]} className="aspect-square w-full object-contain" preload="metadata" />
+                ) : (
+                  <img src={urls[i]} alt="" className="aspect-square w-full object-contain" />
+                )}
+                <button
+                  onClick={() => onRemove(i)}
+                  aria-label="Remove"
+                  className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/70 text-sm text-white shadow active:scale-95"
+                >
+                  ×
+                </button>
+                <span className="absolute bottom-1.5 left-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white/90">
+                  {f.type.startsWith("video/") ? "VIDEO" : "PHOTO"}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
       <div className="flex items-end gap-2 border-t border-white/10 bg-[#111216] p-3" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         <textarea
           value={caption}
