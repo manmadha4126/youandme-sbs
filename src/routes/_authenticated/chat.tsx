@@ -1518,10 +1518,14 @@ function MessageBubble({
                         src={url}
                         loading="lazy"
                         alt=""
-                        className="h-40 w-full object-cover transition-transform group-hover:scale-105 sm:h-52"
+                        className={
+                          imgs.length === 1
+                            ? "max-h-[60vh] w-full object-cover transition-transform group-hover:scale-[1.02]"
+                            : "h-44 w-full object-cover transition-transform group-hover:scale-105 sm:h-56"
+                        }
                       />
                     ) : (
-                      <div className="grid h-40 w-full place-items-center bg-white/10 text-xs text-white/60 sm:h-52">Loading…</div>
+                      <div className={`grid w-full place-items-center bg-white/10 text-xs text-white/60 ${imgs.length === 1 ? "h-64 sm:h-80" : "h-44 sm:h-56"}`}>Loading…</div>
                     )}
                   </button>
                 );
