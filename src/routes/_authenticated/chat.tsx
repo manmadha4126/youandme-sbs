@@ -408,8 +408,15 @@ function ChatPage() {
   useEffect(() => { otherLastSeenRef.current = otherLastSeen; }, [otherLastSeen]);
 
   // Preview selected media before sending
-  const previewObjectUrls = useMemo(() => pendingImages.map((f) => URL.createObjectURL(f)), [pendingImages]);
-  useEffect(() => () => previewObjectUrls.forEach((u) => URL.revokeObjectURL(u)), [previewObjectUrls]);
+  // Object URLs for the media preview. Created in an effect (not useMemo) so that
+  // React's double-invoked effects in dev can't revoke URLs that are still in use.
+  const [previewObjectUrls, setPreviewObjectUrls] = useState<string[]>([]);
+  useEffect(() => {
+    if (pendingImages.length === 0) { setPreviewObjectUrls([]); return; }
+    const urls = pendingImages.map((f) => URL.createObjectURL(f));
+    setPreviewObjectUrls(urls);
+    return () => { urls.forEach((u) => URL.revokeObjectURL(u)); };
+  }, [pendingImages]);
   useEffect(() => {
     const hasMedia = pendingImages.some((f) => f.type.startsWith("image/") || f.type.startsWith("video/"));
     if (hasMedia && !showImagePreview) setShowImagePreview(true);
