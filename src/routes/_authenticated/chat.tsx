@@ -1776,26 +1776,74 @@ function MediaPreviewOverlay({
 
 
 function ImageViewer({ url, onClose }: { url: string; onClose: () => void }) {
+  const [zoomed, setZoomed] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  async function download(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (saving) return;
+    setSaving(true);
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("fetch failed");
+      const blob = await res.blob();
+      const ext = (blob.type.split("/")[1] || "jpg").split(";")[0];
+      const filename = `youandme-${Date.now()}.${ext}`;
+      const file = new File([blob], filename, { type: blob.type || "image/jpeg" });
+
+      // Mobile: share sheet lets the user save straight to the gallery / photos
+      const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean };
+      if (nav.share && nav.canShare?.({ files: [file] })) {
+        try {
+          await nav.share({ files: [file] });
+          setSaving(false);
+          return;
+        } catch (err) {
+          if ((err as DOMException)?.name === "AbortError") { setSaving(false); return; }
+        }
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+      toast.success("Image saved");
+    } catch {
+      toast.error("Could not save the image");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl animate-fade-in" onClick={onClose}>
-      <button aria-label="Close" onClick={onClose} className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-lg border-2 border-red-600 bg-black text-red-500 shadow-lg transition hover:bg-red-600 hover:text-black active:scale-95" style={{ marginTop: "env(safe-area-inset-top)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black/95 animate-fade-in" onClick={onClose}>
+      <button aria-label="Close" onClick={onClose} className="fixed right-4 top-4 z-10 grid h-11 w-11 place-items-center rounded-lg border-2 border-red-600 bg-black text-red-500 shadow-lg transition hover:bg-red-600 hover:text-black active:scale-95" style={{ marginTop: "env(safe-area-inset-top)" }}>
         <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
       </button>
-      <a
-        href={url}
-        download
-        onClick={(e) => e.stopPropagation()}
-        className="absolute right-4 top-20 grid h-11 w-11 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
-        aria-label="Download"
+      <button
+        type="button"
+        onClick={download}
+        disabled={saving}
+        className="fixed right-4 top-20 z-10 grid h-11 w-11 place-items-center rounded-full bg-white/15 text-white transition hover:bg-white/25 active:scale-95 disabled:opacity-60"
+        aria-label="Download image"
+        style={{ marginTop: "env(safe-area-inset-top)" }}
       >
-        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
-      </a>
+        {saving ? (
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+        ) : (
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
+        )}
+      </button>
       <img
         src={url}
         alt=""
-        onClick={(e) => e.stopPropagation()}
-        className="max-h-[92vh] max-w-[96vw] touch-manipulation select-none rounded-2xl object-contain"
-        style={{ touchAction: "pinch-zoom" }}
+        onClick={(e) => { e.stopPropagation(); setZoomed((z) => !z); }}
+        className={`touch-manipulation select-none rounded-2xl transition-transform duration-200 ${zoomed ? "max-w-none cursor-zoom-out object-contain" : "max-h-[92vh] max-w-[96vw] cursor-zoom-in object-contain"}`}
+        style={{ touchAction: "pinch-zoom", ...(zoomed ? { height: "auto", width: "180vw", maxHeight: "none" } : {}) }}
       />
     </div>
   );
