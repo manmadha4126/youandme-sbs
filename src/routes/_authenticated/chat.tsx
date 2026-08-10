@@ -561,6 +561,9 @@ function ChatPage() {
         toast.error(`Could not upload ${file.name}`);
         continue;
       }
+      // Cache what we just sent so it opens/downloads instantly and offline.
+      const localUrl = await putCachedBlob(path, file);
+      setLocalUrls((prev) => ({ ...prev, [path]: localUrl }));
       const isImage = file.type.startsWith("image/") || file.type.startsWith("video/");
       paths.push(isImage ? path : `file|${encodeURIComponent(file.name)}|${path}`);
     }
