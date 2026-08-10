@@ -1466,7 +1466,7 @@ function MessageBubble({
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         onTouchCancel={onTouchEnd}
-        className="relative max-w-[82%] sm:max-w-[70%]"
+        className={`relative ${imgs.length > 0 ? "w-[85%] max-w-[85%] sm:w-auto sm:max-w-[60%]" : "max-w-[82%] sm:max-w-[70%]"}`}
         style={{ transform: `translateX(${dragX}px)`, transition: dragX === 0 ? "transform 0.2s ease-out" : "none" }}
       >
         <button
