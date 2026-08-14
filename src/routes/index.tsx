@@ -9,6 +9,9 @@ export const Route = createFileRoute("/")({
 function Landing() {
   const navigate = useNavigate();
   const [pressed, setPressed] = useState(false);
+  const [installEvent, setInstallEvent] = useState<any>(null);
+  const [installed, setInstalled] = useState(false);
+  const [showIosHint, setShowIosHint] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -16,6 +19,42 @@ function Landing() {
       void data;
     });
   }, []);
+
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone === true;
+    setInstalled(standalone);
+
+    const onPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallEvent(e);
+    };
+    const onInstalled = () => {
+      setInstalled(true);
+      setInstallEvent(null);
+    };
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+
+  async function handleInstall() {
+    if (installEvent) {
+      installEvent.prompt();
+      const res = await installEvent.userChoice;
+      if (res?.outcome === "accepted") setInstalled(true);
+      setInstallEvent(null);
+      return;
+    }
+    setShowIosHint((v) => !v);
+  }
 
   async function handleEnter() {
     if (pressed) return;
@@ -25,6 +64,7 @@ function Landing() {
       navigate({ to: data.session ? "/chat" : "/auth" });
     }, 500);
   }
+
 
   return (
     <main
