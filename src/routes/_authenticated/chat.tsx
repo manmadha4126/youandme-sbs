@@ -1527,8 +1527,9 @@ function MessageBubble({
         <div
           className={`overflow-hidden rounded-3xl px-1 py-1 shadow-[var(--shadow-soft)] ${
             mine
-              ? "rounded-br-lg bg-[oklch(0.42_0.20_330)] text-white border border-white/15"
-              : "rounded-bl-lg bg-white text-slate-900 border border-slate-200 shadow-sm"
+              ? "rounded-br-lg bg-[#a3009c] text-white border border-white/15"
+              : "rounded-bl-lg bg-[#e6fbf2] text-[#0f3b30] border border-[#bff0dd] shadow-sm"
+
           }`}
         >
           {parent && (
