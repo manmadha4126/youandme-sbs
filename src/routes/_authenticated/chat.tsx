@@ -867,13 +867,14 @@ function ChatPage() {
         height: "100dvh",
         paddingTop: "env(safe-area-inset-top)",
         paddingBottom: `calc(env(safe-area-inset-bottom) + ${kbInset}px)`,
-        background: "linear-gradient(180deg, #4facfe 0%, #4facfe 42%, #9fd8f7 62%, #d9eefb 80%, #f7f5ef 100%)",
+        background: "linear-gradient(180deg, #5ce0b4 0%, #7fe9c6 30%, #a8f0d8 55%, #d3f7e9 78%, #f2fdf8 100%)",
       }}
     >
       {/* Ambient glow */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-[oklch(0.55_0.18_200)] opacity-30 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[oklch(0.45_0.24_310)] opacity-35 blur-3xl" />
+        <div className="absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-[#2fd6a5] opacity-40 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[#8ef0cf] opacity-45 blur-3xl" />
+
       </div>
 
       {/* Header */}
@@ -1526,8 +1527,9 @@ function MessageBubble({
         <div
           className={`overflow-hidden rounded-3xl px-1 py-1 shadow-[var(--shadow-soft)] ${
             mine
-              ? "rounded-br-lg bg-[oklch(0.42_0.20_330)] text-white border border-white/15"
-              : "rounded-bl-lg bg-white text-slate-900 border border-slate-200 shadow-sm"
+              ? "rounded-br-lg bg-[#a3009c] text-white border border-white/15"
+              : "rounded-bl-lg bg-[#e6fbf2] text-[#0f3b30] border border-[#bff0dd] shadow-sm"
+
           }`}
         >
           {parent && (
