@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import homeBg from "@/assets/home-watercolor.png.asset.json";
 
 export const Route = createFileRoute("/")({
   component: Landing,
