@@ -146,7 +146,7 @@ function AuthPage() {
           <p className="mt-3 text-lg font-bold text-green-700">Sign in to continue</p>
         </div>
 
-        <label className="mb-2 block text-sm font-extrabold uppercase tracking-widest text-green-900">Who are you</label>
+        <label className="mb-2 block text-sm font-extrabold uppercase tracking-widest text-black">Who are you</label>
         <div className="mb-5 grid grid-cols-2 gap-3">
           {USERS.map((u) => (
             <button
@@ -164,7 +164,7 @@ function AuthPage() {
           ))}
         </div>
 
-        <label className="mb-2 block text-sm font-extrabold uppercase tracking-widest text-green-900">4-digit code</label>
+        <label className="mb-2 block text-sm font-extrabold uppercase tracking-widest text-black">4-digit code</label>
         <input
           type="password"
           inputMode="numeric"
@@ -175,7 +175,7 @@ function AuthPage() {
           placeholder="••••"
           autoComplete="current-password"
           required
-          className="w-full rounded-full border border-green-200 bg-green-50/60 px-4 py-3.5 text-center text-lg tracking-[0.5em] text-green-900 placeholder-green-300 outline-none transition focus:border-green-500 focus:bg-green-50 focus:ring-2 focus:ring-green-300"
+          className="w-full rounded-full border border-black bg-green-50/60 px-4 py-3.5 text-center text-lg tracking-[0.5em] text-black placeholder-green-300 outline-none transition focus:border-black focus:bg-green-50 focus:ring-2 focus:ring-black/30"
         />
 
         {error && <p className="mt-3 text-center text-sm font-semibold text-red-700">{error}</p>}
