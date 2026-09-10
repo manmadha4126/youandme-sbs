@@ -69,10 +69,8 @@ function Landing() {
 
   return (
     <main
-      className="relative flex min-h-[100dvh] w-full items-center justify-center overflow-hidden px-6"
-      style={{
-        background: "linear-gradient(180deg, #4facfe 0%, #00f2fe 30%, #ff9a9e 70%, #fecfef 100%)",
-      }}
+      className="relative flex min-h-[100dvh] w-full items-center justify-center overflow-hidden px-6 bg-cover bg-center"
+      style={{ backgroundImage: `url(${homeBg.url})` }}
     >
       {/* Floating glow orbs */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
