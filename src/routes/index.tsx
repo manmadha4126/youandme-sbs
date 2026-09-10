@@ -69,32 +69,20 @@ function Landing() {
 
   return (
     <main
-      className="relative flex min-h-[100dvh] w-full items-center justify-center overflow-hidden px-6 bg-cover bg-center"
+      onClick={handleEnter}
+      className="relative flex min-h-[100dvh] w-full cursor-pointer items-center justify-center overflow-hidden bg-cover bg-center"
       style={{ backgroundImage: `url(${homeBg.url})` }}
     >
-      <div className="relative z-10 flex flex-col items-center gap-8 text-center animate-fade-up">
-        <div className="space-y-3">
-          <p className="text-sm font-semibold uppercase tracking-[0.4em] text-[#1e1b4b] animate-fade-in sm:text-base">A Private Space For Two</p>
-          <h1 className="font-kameron text-6xl font-bold sm:text-7xl">
-            <span className="text-[#dc2645]">You</span>
-            <span className="text-black">And</span>
-            <span className="text-[#dc2645]">Me</span>
-          </h1>
-        </div>
-
-        <button
-          onClick={handleEnter}
-          className={`group relative flex items-center gap-3 rounded-full border border-white/60 px-10 py-5 font-kameron text-lg font-semibold tracking-wide text-[#1e1b4b] shadow-[0_20px_60px_-20px_oklch(0.7_0.22_15/0.5)] backdrop-blur-xl transition-transform duration-500 hover:scale-105 active:scale-95 animate-heartbeat ${pressed ? "scale-95 opacity-70" : ""}`}
-          style={{ background: "linear-gradient(135deg, oklch(1 0 0 / 0.55), oklch(1 0 0 / 0.3))" }}
-        >
-          <span>youandme</span>
-          <svg className="h-5 w-5 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M5 12h14M13 5l7 7-7 7" />
-          </svg>
-        </button>
-
-        <p className="text-base font-medium tracking-wide text-[#1e1b4b]">Tap to Start Our Conversation.</p>
-      </div>
+      {/* Text baked into the artwork; keep semantic content for SEO/a11y */}
+      <h1 className="sr-only">YouAndMe — A Private Space For Two</h1>
+      <button
+        onClick={handleEnter}
+        aria-label="youandme — Tap to Start Our Conversation"
+        className="absolute inset-0 h-full w-full"
+      />
+      {pressed && (
+        <div className="pointer-events-none absolute inset-0 bg-black/10 transition-opacity" />
+      )}
     </main>
   );
 }
