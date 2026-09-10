@@ -84,11 +84,12 @@ function Landing() {
       {/* Beating heart-style YouAndMe button */}
       <button
         onClick={handleEnter}
-        className="pointer-events-auto absolute bottom-[18%] z-10 flex items-center justify-center rounded-full px-8 py-4 font-kameron text-3xl font-semibold tracking-wide text-white shadow-[0_0_40px_rgba(255,255,255,0.35)] backdrop-blur-md transition-transform active:scale-95 sm:bottom-[16%] sm:text-4xl animate-heartbeat"
+        className="pointer-events-auto absolute bottom-[10%] z-10 flex items-center justify-center rounded-full px-8 py-4 font-kameron text-3xl font-semibold tracking-wide shadow-[0_0_40px_rgba(59,130,246,0.45)] backdrop-blur-md transition-transform active:scale-95 sm:bottom-[8%] sm:text-4xl animate-heartbeat"
         style={{
-          background: "linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.12) 100%)",
-          border: "1px solid rgba(255,255,255,0.35)",
-          textShadow: "0 2px 10px rgba(0,0,0,0.25)",
+          background: "linear-gradient(135deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.14) 100%)",
+          border: "1px solid rgba(255,255,255,0.40)",
+          color: "#2563EB",
+          textShadow: "0 1px 2px rgba(255,255,255,0.8), 0 0 20px rgba(37,99,235,0.35)",
         }}
       >
         YouAndMe
