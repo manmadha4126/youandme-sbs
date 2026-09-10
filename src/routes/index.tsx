@@ -72,40 +72,20 @@ function Landing() {
       className="relative flex min-h-[100dvh] w-full items-center justify-center overflow-hidden px-6 bg-cover bg-center"
       style={{ backgroundImage: `url(${homeBg.url})` }}
     >
-      {/* Floating glow orbs */}
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-32 -left-24 h-96 w-96 rounded-full bg-[oklch(0.65_0.20_250)] opacity-40 blur-3xl animate-float-slow" />
-        <div className="absolute top-1/2 -right-32 h-[28rem] w-[28rem] rounded-full bg-[oklch(0.60_0.22_340)] opacity-45 blur-3xl animate-float-slower" />
-        <div className="absolute -bottom-40 left-1/3 h-96 w-96 rounded-full bg-[oklch(0.70_0.20_15)] opacity-35 blur-3xl animate-float-slow" />
-        {/* Particles */}
-        {Array.from({ length: 18 }).map((_, i) => (
-          <span
-            key={i}
-            className="absolute h-1.5 w-1.5 rounded-full bg-white/60 blur-[1px]"
-            style={{
-              top: `${(i * 53) % 100}%`,
-              left: `${(i * 37) % 100}%`,
-              animation: `float-slow ${8 + (i % 6)}s ease-in-out ${i * 0.3}s infinite`,
-              opacity: 0.4 + ((i % 5) * 0.1),
-            }}
-          />
-        ))}
-      </div>
-
-      <div className="relative z-10 flex flex-col items-center gap-10 text-center animate-fade-up">
+      <div className="relative z-10 flex flex-col items-center gap-8 text-center animate-fade-up">
         <div className="space-y-3">
-          <p className="text-sm font-semibold uppercase tracking-[0.4em] text-white drop-shadow-md animate-fade-in sm:text-base">A Private Space For Two</p>
-          <h1 className="font-kameron text-6xl font-bold drop-shadow-lg sm:text-7xl">
-            <span className="text-white">You</span>
+          <p className="text-sm font-semibold uppercase tracking-[0.4em] text-[#1e1b4b] animate-fade-in sm:text-base">A Private Space For Two</p>
+          <h1 className="font-kameron text-6xl font-bold sm:text-7xl">
+            <span className="text-[#dc2645]">You</span>
             <span className="text-black">And</span>
-            <span className="text-white">Me</span>
+            <span className="text-[#dc2645]">Me</span>
           </h1>
         </div>
 
         <button
           onClick={handleEnter}
-          className={`glass group relative flex items-center gap-3 rounded-full border border-white/25 px-10 py-5 font-kameron text-lg font-semibold tracking-wide text-white shadow-[0_20px_60px_-20px_oklch(0.7_0.22_15/0.6)] backdrop-blur-2xl transition-transform duration-500 hover:scale-105 active:scale-95 animate-heartbeat ${pressed ? "scale-95 opacity-70" : ""}`}
-          style={{ background: "linear-gradient(135deg, oklch(1 0 0 / 0.14), oklch(1 0 0 / 0.06))" }}
+          className={`group relative flex items-center gap-3 rounded-full border border-white/60 px-10 py-5 font-kameron text-lg font-semibold tracking-wide text-[#1e1b4b] shadow-[0_20px_60px_-20px_oklch(0.7_0.22_15/0.5)] backdrop-blur-xl transition-transform duration-500 hover:scale-105 active:scale-95 animate-heartbeat ${pressed ? "scale-95 opacity-70" : ""}`}
+          style={{ background: "linear-gradient(135deg, oklch(1 0 0 / 0.55), oklch(1 0 0 / 0.3))" }}
         >
           <span>youandme</span>
           <svg className="h-5 w-5 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -113,7 +93,7 @@ function Landing() {
           </svg>
         </button>
 
-        <p className="text-base font-medium tracking-wide text-white">Tap to Start Our Conversation.</p>
+        <p className="text-base font-medium tracking-wide text-[#1e1b4b]">Tap to Start Our Conversation.</p>
       </div>
     </main>
   );
