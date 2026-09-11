@@ -78,35 +78,44 @@ function Landing() {
   return (
     <main
       onClick={handleEnter}
-      className="relative flex min-h-[100dvh] w-full cursor-pointer flex-col items-center justify-end overflow-hidden bg-cover bg-center bg-no-repeat pb-[14vh]"
+      className="relative flex min-h-[100dvh] w-full cursor-pointer flex-col items-center justify-end overflow-hidden bg-cover bg-center bg-no-repeat pb-[8vh]"
       style={{ backgroundColor: "#F7EFE7", backgroundImage: `url(${homeBg.url})` }}
     >
-      <p className="font-kameron text-xs font-semibold tracking-[0.35em] text-[#1E2A5A] sm:text-sm">
-        A PRIVATE SPACE FOR TWO
-      </p>
-      <h1 className="mt-2 font-kameron text-4xl font-bold sm:text-6xl">
-        <span className="text-[#C81E5A]">You</span>
-        <span className="text-[#0F1B3D]">And</span>
-        <span className="text-[#C81E5A]">Me</span>
-      </h1>
+      {/* soft cream veil so the wording stays readable over the paint */}
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[45%]"
+        style={{ background: "linear-gradient(to top, rgba(250,243,235,0.92) 30%, rgba(250,243,235,0.55) 65%, rgba(250,243,235,0) 100%)" }}
+      />
 
-      <button
-        onClick={handleEnter}
-        aria-label="YouAndMe — Tap to Start Our Conversation"
-        className="animate-heartbeat mt-5 whitespace-nowrap rounded-full px-6 py-2 font-kameron text-lg font-semibold tracking-wide backdrop-blur-md transition-transform active:scale-95 sm:text-xl"
-        style={{
-          background: "linear-gradient(135deg, rgba(255,255,255,0.72) 0%, rgba(255,236,240,0.62) 100%)",
-          border: "1px solid rgba(255,255,255,0.85)",
-          color: "#2563EB",
-          boxShadow: "0 8px 30px rgba(37,99,235,0.25)",
-        }}
-      >
-        YouAndMe
-      </button>
+      <div className="relative z-10 flex flex-col items-center text-center">
+        <p className="font-kameron text-xs font-semibold tracking-[0.35em] text-[#1E2A5A] sm:text-sm">
+          A PRIVATE SPACE FOR TWO
+        </p>
+        <h1 className="mt-2 font-kameron text-4xl font-bold sm:text-6xl">
+          <span className="text-[#C81E5A]">You</span>
+          <span className="text-[#0F1B3D]">And</span>
+          <span className="text-[#C81E5A]">Me</span>
+        </h1>
 
-      <p className="mt-4 font-kameron text-base font-medium text-[#1E2A5A] sm:text-lg">
-        Tap to Start Our Conversation.
-      </p>
+        <button
+          onClick={handleEnter}
+          aria-label="YouAndMe — Tap to Start Our Conversation"
+          className="animate-heartbeat mt-5 whitespace-nowrap rounded-full px-5 py-1.5 font-kameron text-base font-semibold tracking-wide backdrop-blur-md transition-transform active:scale-95 sm:text-lg"
+          style={{
+            background: "linear-gradient(135deg, rgba(255,255,255,0.80) 0%, rgba(255,236,240,0.70) 100%)",
+            border: "1px solid rgba(255,255,255,0.9)",
+            color: "#2563EB",
+            boxShadow: "0 8px 26px rgba(37,99,235,0.22)",
+          }}
+        >
+          YouAndMe
+        </button>
+
+        <p className="mt-4 font-kameron text-base font-medium text-[#1E2A5A] sm:text-lg">
+          Tap to Start Our Conversation.
+        </p>
+      </div>
+
 
 
 
