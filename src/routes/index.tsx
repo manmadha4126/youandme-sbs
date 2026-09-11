@@ -60,11 +60,19 @@ function Landing() {
   async function handleEnter() {
     if (pressed) return;
     setPressed(true);
-    const { data } = await supabase.auth.getSession();
-    setTimeout(() => {
-      navigate({ to: data.session ? "/chat" : "/auth" });
-    }, 500);
+    let session = null as any;
+    try {
+      const res: any = await Promise.race([
+        supabase.auth.getSession(),
+        new Promise((r) => setTimeout(() => r({ data: { session: null } }), 800)),
+      ]);
+      session = res?.data?.session ?? null;
+    } catch {
+      session = null;
+    }
+    navigate({ to: session ? "/chat" : "/auth" });
   }
+
 
 
   return (
