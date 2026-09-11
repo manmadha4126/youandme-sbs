@@ -70,7 +70,8 @@ function Landing() {
       <h1 className="sr-only">YouAndMe — A Private Space For Two</h1>
 
       {/* Only the baked-in "youandme" button area is tappable */}
-      <button
+      <Link
+        to="/auth"
         onClick={handleEnter}
         aria-label="youandme — Tap to Start Our Conversation"
         className="absolute bottom-[12%] left-1/2 z-10 -translate-x-1/2 rounded-full px-10 py-3 text-lg font-semibold tracking-wide text-white shadow-lg backdrop-blur-md transition-transform active:scale-95"
