@@ -70,30 +70,37 @@ function Landing() {
   return (
     <main
       onClick={handleEnter}
-      className="relative flex min-h-[100dvh] w-full cursor-pointer items-center justify-center overflow-hidden bg-cover bg-center"
-      style={{ backgroundImage: `url(${homeBg.url})` }}
+      className="relative flex min-h-[100dvh] w-full cursor-pointer items-center justify-center overflow-hidden"
+      style={{ backgroundColor: "#F7EFE7" }}
     >
-      {/* Text baked into the artwork; keep semantic content for SEO/a11y */}
       <h1 className="sr-only">YouAndMe — A Private Space For Two</h1>
-      <button
-        onClick={handleEnter}
-        aria-label="youandme — Tap to Start Our Conversation"
-        className="absolute inset-0 h-full w-full"
-      />
 
-      {/* Beating heart-style YouAndMe button */}
-      <button
-        onClick={handleEnter}
-        className="pointer-events-auto absolute bottom-[10%] z-10 flex items-center justify-center rounded-full px-8 py-4 font-kameron text-3xl font-semibold tracking-wide shadow-[0_0_40px_rgba(59,130,246,0.45)] backdrop-blur-md transition-transform active:scale-95 sm:bottom-[8%] sm:text-4xl animate-heartbeat"
-        style={{
-          background: "linear-gradient(135deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.14) 100%)",
-          border: "1px solid rgba(255,255,255,0.40)",
-          color: "#2563EB",
-          textShadow: "0 1px 2px rgba(255,255,255,0.8), 0 0 20px rgba(37,99,235,0.35)",
-        }}
+      {/* Artwork shown in full, never cropped */}
+      <div
+        className="relative w-full"
+        style={{ aspectRatio: "1866 / 843", maxHeight: "100dvh", maxWidth: "min(100vw, calc(100dvh * 1866 / 843))" }}
       >
-        YouAndMe
-      </button>
+        <img
+          src={homeBg.url}
+          alt="Watercolor artwork of two people forming a heart"
+          className="absolute inset-0 h-full w-full object-contain"
+        />
+
+        {/* Beating button placed exactly over the artwork's call to action */}
+        <button
+          onClick={handleEnter}
+          aria-label="YouAndMe — Tap to Start Our Conversation"
+          className="animate-heartbeat absolute left-1/2 top-[70.8%] z-10 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full px-[3.5%] py-[1.6%] font-kameron text-[clamp(14px,2.2vw,30px)] font-semibold tracking-wide backdrop-blur-md transition-transform active:scale-95"
+          style={{
+            background: "linear-gradient(135deg, rgba(255,255,255,0.72) 0%, rgba(255,236,240,0.62) 100%)",
+            border: "1px solid rgba(255,255,255,0.85)",
+            color: "#2563EB",
+            boxShadow: "0 8px 30px rgba(37,99,235,0.25)",
+          }}
+        >
+          YouAndMe
+        </button>
+      </div>
 
       {pressed && (
         <div className="pointer-events-none absolute inset-0 bg-black/10 transition-opacity" />
@@ -101,3 +108,4 @@ function Landing() {
     </main>
   );
 }
+
