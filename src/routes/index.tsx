@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import homeBg from "@/assets/home-watercolor.png.asset.json";
@@ -8,7 +8,6 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
-  const navigate = useNavigate();
   const [pressed, setPressed] = useState(false);
   const [installEvent, setInstallEvent] = useState<any>(null);
   const [installed, setInstalled] = useState(false);
@@ -57,13 +56,8 @@ function Landing() {
     setShowIosHint((v) => !v);
   }
 
-  async function handleEnter() {
-    if (pressed) return;
+  function handleEnter() {
     setPressed(true);
-    const { data } = await supabase.auth.getSession();
-    setTimeout(() => {
-      navigate({ to: data.session ? "/chat" : "/auth" });
-    }, 500);
   }
 
 
@@ -76,7 +70,8 @@ function Landing() {
       <h1 className="sr-only">YouAndMe — A Private Space For Two</h1>
 
       {/* Only the baked-in "youandme" button area is tappable */}
-      <button
+      <Link
+        to="/auth"
         onClick={handleEnter}
         aria-label="youandme — Tap to Start Our Conversation"
         className="absolute bottom-[12%] left-1/2 z-10 -translate-x-1/2 rounded-full px-10 py-3 text-lg font-semibold tracking-wide text-white shadow-lg backdrop-blur-md transition-transform active:scale-95"
