@@ -56,13 +56,8 @@ function Landing() {
     setShowIosHint((v) => !v);
   }
 
-  async function handleEnter() {
-    if (pressed) return;
+  function handleEnter() {
     setPressed(true);
-    const { data } = await supabase.auth.getSession();
-    setTimeout(() => {
-      navigate({ to: data.session ? "/chat" : "/auth" });
-    }, 500);
   }
 
 
