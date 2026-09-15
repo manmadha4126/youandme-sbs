@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import homeBg from "@/assets/home-watercolor.png.asset.json";
+import homeBg from "@/assets/home-watercolor.png";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -70,8 +70,8 @@ function Landing() {
   return (
     <main
       onClick={handleEnter}
-      className="relative flex min-h-[100dvh] w-full cursor-pointer items-center justify-center overflow-hidden bg-cover bg-center"
-      style={{ backgroundImage: `url(${homeBg.url})` }}
+      className="relative flex min-h-[100dvh] w-full cursor-pointer items-center justify-center overflow-hidden bg-[#f3e9e2] bg-contain bg-center bg-no-repeat sm:bg-cover"
+      style={{ backgroundImage: `url(${homeBg})` }}
     >
       {/* Text baked into the artwork; keep semantic content for SEO/a11y */}
       <h1 className="sr-only">YouAndMe — A Private Space For Two</h1>
