@@ -80,13 +80,9 @@ function Landing() {
   return (
     <main
       onClick={handleEnter}
-      className="relative flex min-h-[100dvh] w-full cursor-pointer items-center justify-center overflow-hidden bg-background"
+      style={{ backgroundImage: `url("${homeBg.url}")` }}
+      className="relative flex min-h-[100dvh] w-full cursor-pointer items-center justify-center overflow-hidden bg-background bg-cover bg-center bg-no-repeat max-sm:bg-[length:auto_100%]"
     >
-      <img
-        src={homeBg.url}
-        alt="YouAndMe watercolor welcome artwork"
-        className="absolute inset-0 h-full w-full object-cover object-center"
-      />
       {/* Text baked into the artwork; keep semantic content for SEO/a11y */}
       <h1 className="sr-only">YouAndMe — A Private Space For Two</h1>
       <button
