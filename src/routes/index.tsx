@@ -85,7 +85,7 @@ function Landing() {
       <img
         src={homeBg.url}
         alt="YouAndMe watercolor welcome artwork"
-        className="absolute inset-0 h-full w-full object-contain"
+        className="absolute inset-0 h-full w-full object-cover object-center"
       />
       {/* Text baked into the artwork; keep semantic content for SEO/a11y */}
       <h1 className="sr-only">YouAndMe — A Private Space For Two</h1>
