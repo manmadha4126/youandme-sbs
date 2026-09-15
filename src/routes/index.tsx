@@ -1,19 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import homeBg from "@/assets/home-watercolor-restored.png.asset.json";
+import homeBg from "@/assets/home-watercolor.png.asset.json";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "YouAndMe — A Private Space for Two" },
-      { name: "description", content: "Enter YouAndMe, a private space for two to share messages and moments." },
-      { property: "og:title", content: "YouAndMe — A Private Space for Two" },
-      { property: "og:description", content: "Enter YouAndMe, a private space for two to share messages and moments." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
   component: Landing,
 });
 
@@ -80,8 +70,8 @@ function Landing() {
   return (
     <main
       onClick={handleEnter}
-      style={{ backgroundImage: `url("${homeBg.url}")` }}
-      className="relative flex min-h-[100dvh] w-full cursor-pointer items-center justify-center overflow-hidden bg-background bg-cover bg-center bg-no-repeat max-sm:bg-[length:auto_100%]"
+      className="relative flex min-h-[100dvh] w-full cursor-pointer items-center justify-center overflow-hidden bg-cover bg-center"
+      style={{ backgroundImage: `url(${homeBg.url})` }}
     >
       {/* Text baked into the artwork; keep semantic content for SEO/a11y */}
       <h1 className="sr-only">YouAndMe — A Private Space For Two</h1>
