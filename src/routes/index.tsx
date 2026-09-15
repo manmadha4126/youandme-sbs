@@ -71,7 +71,7 @@ function Landing() {
     <main
       onClick={handleEnter}
       className="relative flex min-h-[100dvh] w-full cursor-pointer items-center justify-center overflow-hidden bg-cover bg-center"
-      style={{ backgroundImage: `url(${homeBg.url})` }}
+      style={{ backgroundImage: `url(${homeBg})` }}
     >
       {/* Text baked into the artwork; keep semantic content for SEO/a11y */}
       <h1 className="sr-only">YouAndMe — A Private Space For Two</h1>
