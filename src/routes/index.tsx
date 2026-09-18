@@ -2,8 +2,25 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import homeBg from "@/assets/home-watercolor.png";
+import homeBgMobile from "@/assets/home-watercolor-mobile.png";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "youandme — A Private Space for Two" },
+      {
+        name: "description",
+        content: "A private place for Manmadha and Likhitha to stay close and share every moment.",
+      },
+      { property: "og:title", content: "youandme — A Private Space for Two" },
+      {
+        property: "og:description",
+        content: "A private place for Manmadha and Likhitha to stay close and share every moment.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: Landing,
 });
 
@@ -70,9 +87,17 @@ function Landing() {
   return (
     <main
       onClick={handleEnter}
-      className="relative flex min-h-[100dvh] w-full cursor-pointer items-center justify-center overflow-hidden bg-[#f3e9e2] bg-contain bg-center bg-no-repeat sm:bg-cover"
-      style={{ backgroundImage: `url(${homeBg})` }}
+      className="relative flex min-h-[100dvh] w-full cursor-pointer items-center justify-center overflow-hidden bg-background"
     >
+      <picture className="absolute inset-0 h-full w-full">
+        <source media="(min-width: 640px)" srcSet={homeBg} />
+        <img
+          src={homeBgMobile}
+          alt=""
+          aria-hidden="true"
+          className="h-full w-full object-cover object-center"
+        />
+      </picture>
       {/* Text baked into the artwork; keep semantic content for SEO/a11y */}
       <h1 className="sr-only">YouAndMe — A Private Space For Two</h1>
       <button
@@ -81,7 +106,7 @@ function Landing() {
         className="absolute inset-0 h-full w-full"
       />
       {pressed && (
-        <div className="pointer-events-none absolute inset-0 bg-black/10 transition-opacity" />
+        <div className="pointer-events-none absolute inset-0 bg-foreground/10 transition-opacity" />
       )}
     </main>
   );
