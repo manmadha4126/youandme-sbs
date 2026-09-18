@@ -4,6 +4,16 @@ import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/auth")({
+  head: () => ({
+    meta: [
+      { title: "Sign In — youandme" },
+      { name: "description", content: "Sign in to the private youandme conversation." },
+      { property: "og:title", content: "Sign In — youandme" },
+      { property: "og:description", content: "Sign in to the private youandme conversation." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   validateSearch: (s: Record<string, unknown>): { next?: string } => ({
     next: typeof s.next === "string" ? s.next : undefined,
   }),
@@ -177,6 +187,12 @@ function AuthPage() {
           required
           className="w-full rounded-full border border-black bg-green-50/60 px-4 py-3.5 text-center text-lg tracking-[0.5em] text-black placeholder-green-300 outline-none transition focus:border-black focus:bg-green-50 focus:ring-2 focus:ring-black/30"
         />
+
+        {selected === "likhitha" && (
+          <p className="mt-3 text-center text-sm font-semibold text-black">
+            Your password is your last four digits phone number
+          </p>
+        )}
 
         {error && <p className="mt-3 text-center text-sm font-semibold text-red-700">{error}</p>}
 
