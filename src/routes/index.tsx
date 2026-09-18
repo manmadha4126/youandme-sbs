@@ -95,7 +95,7 @@ function Landing() {
           src={homeBgMobile}
           alt=""
           aria-hidden="true"
-          className="h-full w-full scale-[1.06] object-cover object-center sm:scale-100"
+          className="h-full w-full scale-[1.12] object-cover object-center sm:scale-100"
         />
       </picture>
       {/* Text baked into the artwork; keep semantic content for SEO/a11y */}
