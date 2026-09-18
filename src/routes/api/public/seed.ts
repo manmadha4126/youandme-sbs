@@ -6,7 +6,7 @@ export function toPassword(pin: string) {
 }
 
 const USERS = [
-  { username: "manmadha", display_name: "Manmadha", pin: "6415" },
+  { username: "manmadha", display_name: "Manmadha", pin: "2412" },
   { username: "likhitha", display_name: "Likhitha", pin: "5189" },
 ];
 
