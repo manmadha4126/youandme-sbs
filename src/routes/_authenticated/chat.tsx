@@ -8,6 +8,7 @@ import { CallOverlay, type CallState } from "@/components/CallOverlay";
 import { toast } from "sonner";
 import { cacheRemote, getCachedBlob, getCachedUrl, putCachedBlob } from "@/lib/media-cache";
 import { readOutbox, enqueue, dequeue, newOutboxId, type OutboxItem } from "@/lib/outbox";
+import { LocationButton, useLocationReporter } from "@/components/LocationTracker";
 
 // Attachments are stored in messages.image_urls. Plain entries are images;
 // generic files are encoded as `file|<encoded name>|<storage path>`.
@@ -858,6 +859,7 @@ function ChatPage() {
   }, [profiles, userId]);
 
   const meUsername = userId ? profiles[userId]?.username : undefined;
+  useLocationReporter(userId, meUsername === "likhitha");
 
 
   return (
@@ -867,7 +869,7 @@ function ChatPage() {
         height: "100dvh",
         paddingTop: "env(safe-area-inset-top)",
         paddingBottom: `calc(env(safe-area-inset-bottom) + ${kbInset}px)`,
-        background: "linear-gradient(180deg, #2aa38f 0%, #178a76 20%, #0e6a5f 45%, #0b4a4c 70%, #08333a 100%)",
+        background: "linear-gradient(180deg, #5ee6c8 0%, #2cc4a4 22%, #16a08a 45%, #0f7a70 70%, #0b5458 100%)",
       }}
     >
       {/* Ambient glow */}
@@ -910,6 +912,7 @@ function ChatPage() {
           </div>
 
         </div>
+        {meUsername === "manmadha" && otherProfile && <LocationButton otherId={otherProfile.id} name={otherProfile.display_name} />}
         <button
           aria-label="Voice call"
           onClick={() => (window as unknown as { __startCall?: (k: "audio" | "video") => void }).__startCall?.("audio")}
