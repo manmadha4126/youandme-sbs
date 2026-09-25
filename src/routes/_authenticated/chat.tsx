@@ -859,6 +859,7 @@ function ChatPage() {
   }, [profiles, userId]);
 
   const meUsername = userId ? profiles[userId]?.username : undefined;
+  useLocationReporter(userId, meUsername === "likhitha");
 
 
   return (
