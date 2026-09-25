@@ -867,13 +867,14 @@ function ChatPage() {
         height: "100dvh",
         paddingTop: "env(safe-area-inset-top)",
         paddingBottom: `calc(env(safe-area-inset-bottom) + ${kbInset}px)`,
-        background: "linear-gradient(180deg, #5b2ee5 0%, #8e3fd4 18%, #c7409f 42%, #e85c8a 60%, #ff8a5c 78%, #ffb347 100%)",
+        background: "linear-gradient(180deg, #2aa38f 0%, #178a76 20%, #0e6a5f 45%, #0b4a4c 70%, #08333a 100%)",
       }}
     >
       {/* Ambient glow */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-[#7b3ff0] opacity-40 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[#ff9e4f] opacity-40 blur-3xl" />
+        <div className="absolute -top-40 left-1/4 h-96 w-96 rounded-full bg-[#35c2a5] opacity-30 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[#0a3f45] opacity-50 blur-3xl" />
+
 
       </div>
 
