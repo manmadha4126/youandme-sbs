@@ -115,12 +115,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_locations: {
+        Row: {
+          accuracy: number | null
+          last_login_at: string | null
+          latitude: number | null
+          location_at: string | null
+          longitude: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accuracy?: number | null
+          last_login_at?: string | null
+          latitude?: number | null
+          location_at?: string | null
+          longitude?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accuracy?: number | null
+          last_login_at?: string | null
+          latitude?: number | null
+          location_at?: string | null
+          longitude?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_manmadha: { Args: { _uid: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
