@@ -96,7 +96,7 @@ export function LocationButton({ otherId, name }: { otherId: string; name: strin
         type="button"
         aria-label={`${name} location`}
         onClick={() => setOpen(true)}
-        className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-95"
+        className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-95 sm:h-10 sm:w-10"
       >
         <MapPin size={18} />
       </button>
