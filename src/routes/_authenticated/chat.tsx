@@ -978,6 +978,16 @@ function ChatPage() {
         </div>
       </header>
 
+      {meUsername === "manmadha" && otherProfile && (
+        <LocationButton
+          otherId={otherProfile.id}
+          name={otherProfile.display_name}
+          open={showLocationPanel}
+          onOpenChange={setShowLocationPanel}
+          hideTrigger
+        />
+      )}
+
       {showSearch && (
         <div className="glass border-b border-white/10 px-4 py-2 animate-fade-in">
           <div className="relative">
