@@ -197,6 +197,7 @@ function ChatPage() {
   const [kbInset, setKbInset] = useState(0);
   const [callState, setCallState] = useState<CallState>({ status: "idle" });
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showLocationPanel, setShowLocationPanel] = useState(false);
   const [otherLastSeen, setOtherLastSeen] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
   const [recSecs, setRecSecs] = useState(0);
