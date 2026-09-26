@@ -912,7 +912,6 @@ function ChatPage() {
           </div>
 
         </div>
-        {meUsername === "manmadha" && otherProfile && <LocationButton otherId={otherProfile.id} name={otherProfile.display_name} />}
         <button
           aria-label="Voice call"
           onClick={() => (window as unknown as { __startCall?: (k: "audio" | "video") => void }).__startCall?.("audio")}
