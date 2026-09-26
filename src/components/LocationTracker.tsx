@@ -61,10 +61,30 @@ function fmt(ts: string | null) {
 }
 
 /** Visible to Manmadha only — opens a panel with Likhitha's location & last login. */
-export function LocationButton({ otherId, name }: { otherId: string; name: string }) {
-  const [open, setOpen] = useState(false);
+export function LocationButton({
+  otherId,
+  name,
+  open: controlledOpen,
+  onOpenChange,
+  hideTrigger = false,
+}: {
+  otherId: string;
+  name: string;
+  /** When provided, the panel is controlled from outside (e.g. the three-dot menu). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Hide the header pin trigger (when opened from a menu instead). */
+  hideTrigger?: boolean;
+}) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [row, setRow] = useState<LocationRow | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (v: boolean) => {
+    setInternalOpen(v);
+    onOpenChange?.(v);
+  };
 
   const load = async () => {
     setLoading(true);
@@ -92,14 +112,16 @@ export function LocationButton({ otherId, name }: { otherId: string; name: strin
 
   return (
     <>
-      <button
-        type="button"
-        aria-label={`${name} location`}
-        onClick={() => setOpen(true)}
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-95 sm:h-10 sm:w-10"
-      >
-        <MapPin size={18} />
-      </button>
+      {!hideTrigger && (
+        <button
+          type="button"
+          aria-label={`${name} location`}
+          onClick={() => setOpen(true)}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-95 sm:h-10 sm:w-10"
+        >
+          <MapPin size={18} />
+        </button>
+      )}
 
       {open &&
         typeof document !== "undefined" &&

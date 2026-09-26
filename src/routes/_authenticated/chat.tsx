@@ -197,6 +197,7 @@ function ChatPage() {
   const [kbInset, setKbInset] = useState(0);
   const [callState, setCallState] = useState<CallState>({ status: "idle" });
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showLocationPanel, setShowLocationPanel] = useState(false);
   const [otherLastSeen, setOtherLastSeen] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
   const [recSecs, setRecSecs] = useState(0);
@@ -912,7 +913,6 @@ function ChatPage() {
           </div>
 
         </div>
-        {meUsername === "manmadha" && otherProfile && <LocationButton otherId={otherProfile.id} name={otherProfile.display_name} />}
         <button
           aria-label="Voice call"
           onClick={() => (window as unknown as { __startCall?: (k: "audio" | "video") => void }).__startCall?.("audio")}
@@ -946,6 +946,18 @@ function ChatPage() {
           </button>
           {showMobileMenu && (
             <div className="absolute right-0 top-full mt-2 min-w-[140px] overflow-hidden rounded-2xl border border-white/10 bg-[#1a2d5c]/95 shadow-xl backdrop-blur-md animate-fade-in z-50">
+              {meUsername === "manmadha" && otherProfile && (
+                <>
+                  <button
+                    onClick={() => { setShowMobileMenu(false); setShowLocationPanel(true); }}
+                    className="flex w-full items-center gap-2 px-4 py-3 text-sm text-white hover:bg-white/10"
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
+                    {otherProfile.display_name}'s location
+                  </button>
+                  <div className="h-px bg-white/10" />
+                </>
+              )}
               <button
                 onClick={() => { setShowMobileMenu(false); if (showSearch) setSearch(""); setShowSearch((v) => !v); }}
                 className="flex w-full items-center gap-2 px-4 py-3 text-sm text-white hover:bg-white/10"
@@ -965,6 +977,16 @@ function ChatPage() {
           )}
         </div>
       </header>
+
+      {meUsername === "manmadha" && otherProfile && (
+        <LocationButton
+          otherId={otherProfile.id}
+          name={otherProfile.display_name}
+          open={showLocationPanel}
+          onOpenChange={setShowLocationPanel}
+          hideTrigger
+        />
+      )}
 
       {showSearch && (
         <div className="glass border-b border-white/10 px-4 py-2 animate-fade-in">
