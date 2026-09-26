@@ -881,28 +881,28 @@ function ChatPage() {
       </div>
 
       {/* Header */}
-      <header className="glass sticky top-0 z-20 flex items-center gap-3 px-4 py-3 border-b border-white/10">
+      <header className="glass sticky top-0 z-20 flex items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 border-b border-white/10">
         <button
           type="button"
           aria-label="Back to auth"
           onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/auth", replace: true }); }}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white text-[oklch(0.45_0.22_300)] shadow-lg transition-transform hover:scale-105 active:scale-95"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-[oklch(0.45_0.22_300)] shadow-lg transition-transform hover:scale-105 active:scale-95 sm:h-11 sm:w-11"
         >
           <ArrowLeft size={22} strokeWidth={2.5} />
         </button>
         <div className="min-w-0 flex-1">
-          <div className="font-kameron text-lg font-bold leading-tight"><span className="text-white drop-shadow">You</span><span className="text-black">And</span><span className="text-white drop-shadow">Me</span></div>
-          <div className="flex items-center gap-1.5 text-[11px] leading-snug text-white/70">
-            <span className={`h-3.5 w-3.5 shrink-0 rounded-full ${otherOnline ? "bg-emerald-400 shadow-[0_0_10px] shadow-emerald-400/80" : "bg-white/30"}`} />
-            <span className="whitespace-normal break-words">
+          <div className="truncate font-kameron text-base font-bold leading-tight sm:text-lg"><span className="text-white drop-shadow">You</span><span className="text-black">And</span><span className="text-white drop-shadow">Me</span></div>
+          <div className="mt-0.5 flex items-start gap-1.5 text-[11px] leading-snug text-white/70 sm:text-xs">
+            <span className={`mt-[3px] h-2.5 w-2.5 shrink-0 rounded-full sm:h-3 sm:w-3 ${otherOnline ? "bg-emerald-400 shadow-[0_0_10px] shadow-emerald-400/80" : "bg-white/40"}`} />
+            <span className="min-w-0 leading-snug">
               {otherProfile ? (
                 <>
                   <span className="font-semibold text-white">{otherProfile.display_name}</span>
-                  <span className="text-white/80">
-                    {" "}is {otherOnline ? (otherTyping ? "typing…" : "online") : "offline"}
+                  <span className="text-white/85">
+                    {" "}{otherOnline ? (otherTyping ? "is typing…" : "is online") : "is offline"}
                   </span>
                   {!otherOnline && otherLastSeen && (
-                    <span className="text-white/70"> · last seen {formatLastSeen(otherLastSeen)}</span>
+                    <span className="text-white/60"> · last seen {formatLastSeen(otherLastSeen)}</span>
                   )}
                 </>
               ) : (
@@ -916,14 +916,14 @@ function ChatPage() {
         <button
           aria-label="Voice call"
           onClick={() => (window as unknown as { __startCall?: (k: "audio" | "video") => void }).__startCall?.("audio")}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-95"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-95 sm:h-10 sm:w-10"
         >
           <Phone size={18} />
         </button>
         <button
           aria-label="Video call"
           onClick={() => (window as unknown as { __startCall?: (k: "audio" | "video") => void }).__startCall?.("video")}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-95"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-95 sm:h-10 sm:w-10"
         >
           <Video size={18} />
         </button>
@@ -936,11 +936,11 @@ function ChatPage() {
         </button>
 
         {/* Mobile three-dot menu */}
-        <div className="relative sm:hidden" data-mobile-menu>
+        <div className="relative shrink-0 sm:hidden" data-mobile-menu>
           <button
             aria-label="More options"
             onClick={() => setShowMobileMenu((v) => !v)}
-            className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-95"
+            className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-95 sm:h-10 sm:w-10"
           >
             <MoreVertical size={20} />
           </button>
