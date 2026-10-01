@@ -882,7 +882,7 @@ function ChatPage() {
       </div>
 
       {/* Header */}
-      <header className="glass sticky top-0 z-20 flex items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 border-b border-white/10">
+      <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-chat-header-border bg-chat-header px-3 py-2.5 shadow-lg backdrop-blur-xl sm:gap-3 sm:px-4 sm:py-3">
         <button
           type="button"
           aria-label="Back to auth"
@@ -893,21 +893,17 @@ function ChatPage() {
         </button>
         <div className="min-w-0 flex-1">
           <div className="truncate font-kameron text-base font-bold leading-tight sm:text-lg"><span className="text-white drop-shadow">You</span><span className="text-black">And</span><span className="text-white drop-shadow">Me</span></div>
-          <div className="mt-0.5 flex items-start gap-1.5 text-[11px] leading-snug text-white/70 sm:text-xs">
-            <span className={`mt-[3px] h-2.5 w-2.5 shrink-0 rounded-full sm:h-3 sm:w-3 ${otherOnline ? "bg-emerald-400 shadow-[0_0_10px] shadow-emerald-400/80" : "bg-white/40"}`} />
+          <div className="mt-1 flex items-start gap-2 text-xs font-medium leading-snug text-white sm:text-sm">
+            <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white/25 sm:h-3 sm:w-3 ${otherOnline ? "bg-emerald-400 shadow-[0_0_10px] shadow-emerald-400/80" : "bg-status-offline"}`} />
             <span className="min-w-0 leading-snug">
-              {otherProfile ? (
-                <>
-                  <span className="font-semibold text-white">{otherProfile.display_name}</span>
-                  <span className="text-white/85">
-                    {" "}{otherOnline ? (otherTyping ? "is typing…" : "is online") : "is offline"}
-                  </span>
-                  {!otherOnline && otherLastSeen && (
-                    <span className="text-white/60"> · last seen {formatLastSeen(otherLastSeen)}</span>
-                  )}
-                </>
-              ) : (
-                <span className="text-white/70">{otherOnline ? "online" : "offline"}</span>
+              <span className="font-bold text-white">
+                {otherProfile?.display_name ?? (meUsername === "manmadha" ? "Likhitha" : "Manmadha")}
+              </span>
+              <span className="text-white">
+                {" "}{otherOnline ? (otherTyping ? "is typing…" : "is online") : "is offline"}
+              </span>
+              {!otherOnline && otherLastSeen && (
+                <span className="block text-[11px] font-normal text-status-offline sm:inline sm:text-xs">last seen {formatLastSeen(otherLastSeen)}</span>
               )}
             </span>
           </div>
