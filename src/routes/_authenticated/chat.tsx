@@ -913,7 +913,7 @@ function ChatPage() {
                 {" "}{otherOnline ? (otherTyping ? "is typing…" : "is online") : "is offline"}
               </span>
               {!otherOnline && otherLastSeen && (
-                <span className="block text-[11px] font-normal text-status-offline sm:inline sm:text-xs">last seen {formatLastSeen(otherLastSeen)}</span>
+                <span className="mt-0.5 block text-[11px] font-normal text-status-offline sm:ml-2 sm:inline sm:text-xs">last seen {formatLastSeen(otherLastSeen)}</span>
               )}
             </span>
           </div>
