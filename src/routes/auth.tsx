@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { CHAT_ACCOUNTS } from "@/lib/chat-accounts";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -24,10 +26,7 @@ function isSafeNext(next: string): boolean {
   return next.startsWith("/") && !next.startsWith("//");
 }
 
-const USERS: { username: string; emoji: string }[] = [
-  { username: "manmadha", emoji: "👨" },
-  { username: "likhitha", emoji: "👩" },
-];
+const USERS = CHAT_ACCOUNTS;
 
 function toEmail(username: string) {
   return `${username}@youandme.app`;
@@ -58,8 +57,6 @@ function AuthPage() {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) goPostLogin();
     });
-    // Ensure the two accounts exist (idempotent)
-    fetch("/api/public/seed", { method: "POST" }).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -159,18 +156,21 @@ function AuthPage() {
         <label className="mb-2 block text-sm font-extrabold uppercase tracking-widest text-black">Who are you</label>
         <div className="mb-5 grid grid-cols-2 gap-3">
           {USERS.map((u) => (
-            <button
+            <Button
               key={u.username}
               type="button"
+              aria-label={u.displayName}
+              aria-pressed={selected === u.username}
               onClick={() => setSelected(u.username)}
-              className={`rounded-full border px-4 py-3 text-sm font-semibold capitalize transition-all duration-300 hover:scale-105 ${
+              className={`auth-account h-[92px] min-w-0 flex-col gap-2 rounded-full border px-2 py-3 transition-all duration-300 hover:scale-105 ${
                 selected === u.username
-                  ? "border-transparent bg-green-600 text-white shadow-lg shadow-green-700/25"
-                  : "border-green-200 bg-white/80 text-green-800 hover:border-green-400 hover:bg-green-50"
+                  ? "auth-account-selected"
+                  : "auth-account-idle"
               }`}
             >
               <span className="inline-flex items-center justify-center text-3xl leading-none">{u.emoji}</span>
-            </button>
+              <span className="text-xs font-extrabold uppercase leading-none">{u.displayName}</span>
+            </Button>
           ))}
         </div>
 

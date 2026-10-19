@@ -85,6 +85,12 @@
   --chat-header: oklch(0.28 0.08 190 / 96%);
   --chat-header-border: oklch(0.82 0.12 175 / 35%);
   --status-offline: oklch(0.93 0.04 175);
+  --auth-account-selected: #00a63e;
+  --auth-account-selected-foreground: #ffffff;
+  --auth-account-idle: #ffffff;
+  --auth-account-idle-foreground: #007a33;
+  --auth-account-border: #a5efbf;
+  --auth-account-shadow: 0 8px 16px -6px rgb(0 122 51 / 30%);
 
   --gradient-love: linear-gradient(135deg, oklch(0.32 0.18 300) 0%, oklch(0.55 0.24 340) 50%, oklch(0.72 0.20 15) 100%);
   --gradient-bubble: linear-gradient(135deg, oklch(0.62 0.24 340), oklch(0.55 0.22 320));
@@ -94,6 +100,18 @@
 
 .dark {
   --background: oklch(0.14 0.08 300);
+}
+
+.auth-account-selected, .auth-account-selected:hover {
+  background: var(--auth-account-selected);
+  color: var(--auth-account-selected-foreground);
+  border-color: transparent;
+  box-shadow: var(--auth-account-shadow);
+}
+.auth-account-idle, .auth-account-idle:hover {
+  background: var(--auth-account-idle);
+  color: var(--auth-account-idle-foreground);
+  border-color: var(--auth-account-border);
 }
 
 @layer base {
