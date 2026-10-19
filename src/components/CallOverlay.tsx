@@ -355,6 +355,7 @@ export function CallOverlay({
       <div className="p-6 text-center">
         <p className="text-sm text-white/60">{kind === "video" ? "Video call" : "Voice call"}</p>
         <h2 className="mt-1 text-2xl font-semibold">{label}</h2>
+        {sub && <p className="mt-1 text-sm tabular-nums text-white/70">{sub}</p>}
       </div>
       <div className="relative flex-1 overflow-hidden">
         {kind === "video" && (
@@ -393,7 +394,7 @@ export function CallOverlay({
         )}
         {kind === "audio" && (
           <>
-            <video ref={remoteVideoRef} autoPlay playsInline className="hidden" />
+            <video ref={remoteVideoRef} autoPlay playsInline className="pointer-events-none absolute h-px w-px opacity-0" />
             <video ref={localVideoRef} autoPlay playsInline muted className="hidden" />
             <div className="grid h-full place-items-center">
               <div className="grid h-40 w-40 place-items-center rounded-full bg-white/10 text-6xl font-semibold">
