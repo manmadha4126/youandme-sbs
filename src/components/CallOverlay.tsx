@@ -265,20 +265,97 @@ export function CallOverlay({
     setCamOff(enabled);
   };
 
+  // Ringtone (incoming) / ringback (outgoing) via Web Audio + vibration
+  useEffect(() => {
+    if (callState.status !== "incoming" && callState.status !== "outgoing") return;
+    const incoming = callState.status === "incoming";
+    let ctx: AudioContext | null = null;
+    try { ctx = new AudioContext(); } catch { /* ignore */ }
+    const beep = () => {
+      if (ctx) {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.frequency.value = incoming ? 660 : 440;
+        g.gain.setValueAtTime(0.0001, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(incoming ? 0.25 : 0.12, ctx.currentTime + 0.05);
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.9);
+        o.connect(g).connect(ctx.destination);
+        o.start();
+        o.stop(ctx.currentTime + 1);
+      }
+      if (incoming && "vibrate" in navigator) navigator.vibrate?.([400, 200, 400]);
+    };
+    beep();
+    const iv = setInterval(beep, 2500);
+    return () => { clearInterval(iv); ctx?.close().catch(() => {}); navigator.vibrate?.(0); };
+  }, [callState.status]);
+
+  // Unanswered timeout (45s)
+  useEffect(() => {
+    if (callState.status !== "outgoing" && callState.status !== "incoming") return;
+    const t = setTimeout(() => {
+      if (callState.status === "outgoing") endCall(true);
+      else declineIncoming();
+    }, 45000);
+    return () => clearTimeout(t);
+  }, [callState, endCall, declineIncoming]);
+
+  // Call timer + connection quality
+  const [seconds, setSeconds] = useState(0);
+  const [conn, setConn] = useState<string>("connecting");
+  useEffect(() => {
+    if (callState.status !== "in-call") { setSeconds(0); setConn("connecting"); return; }
+    const iv = setInterval(() => setSeconds((s) => s + 1), 1000);
+    const pc = pcRef.current;
+    let failTimer: ReturnType<typeof setTimeout> | undefined;
+    const onState = () => {
+      if (!pc) return;
+      const st = pc.connectionState;
+      setConn(st);
+      if (st === "disconnected") {
+        pc.restartIce?.();
+        failTimer = setTimeout(() => { if (pc.connectionState !== "connected") endCall(true); }, 15000);
+      } else if (st === "connected" && failTimer) {
+        clearTimeout(failTimer);
+      } else if (st === "failed") {
+        endCall(true);
+      }
+    };
+    pc?.addEventListener("connectionstatechange", onState);
+    onState();
+    return () => { clearInterval(iv); clearTimeout(failTimer); pc?.removeEventListener("connectionstatechange", onState); };
+  }, [callState.status, endCall]);
+
+  // Keep the screen awake during calls
+  useEffect(() => {
+    if (callState.status === "idle") return;
+    let lock: { release: () => Promise<void> } | null = null;
+    const nav = navigator as unknown as { wakeLock?: { request: (t: string) => Promise<{ release: () => Promise<void> }> } };
+    nav.wakeLock?.request("screen").then((l) => { lock = l; }).catch(() => {});
+    return () => { lock?.release().catch(() => {}); };
+  }, [callState.status]);
+
   if (callState.status === "idle") return null;
 
   const kind = callState.status === "in-call" || callState.status === "outgoing" || callState.status === "incoming"
     ? callState.kind : "audio";
+  const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
+  const ss = String(seconds % 60).padStart(2, "0");
   const label =
     callState.status === "outgoing" ? `Calling ${otherName}…` :
     callState.status === "incoming" ? `${otherName} is calling` :
     otherName;
+  const sub =
+    callState.status === "in-call"
+      ? conn === "connected" ? `${mm}:${ss}` : conn === "disconnected" ? "Reconnecting…" : "Connecting…"
+      : callState.status === "outgoing" ? "Ringing…" : null;
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-black/95 text-white" style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}>
       <div className="p-6 text-center">
         <p className="text-sm text-white/60">{kind === "video" ? "Video call" : "Voice call"}</p>
         <h2 className="mt-1 text-2xl font-semibold">{label}</h2>
+        {sub && <p className="mt-1 text-sm tabular-nums text-white/70">{sub}</p>}
       </div>
       <div className="relative flex-1 overflow-hidden">
         {kind === "video" && (
@@ -317,7 +394,7 @@ export function CallOverlay({
         )}
         {kind === "audio" && (
           <>
-            <video ref={remoteVideoRef} autoPlay playsInline className="hidden" />
+            <video ref={remoteVideoRef} autoPlay playsInline className="pointer-events-none absolute h-px w-px opacity-0" />
             <video ref={localVideoRef} autoPlay playsInline muted className="hidden" />
             <div className="grid h-full place-items-center">
               <div className="grid h-40 w-40 place-items-center rounded-full bg-white/10 text-6xl font-semibold">
