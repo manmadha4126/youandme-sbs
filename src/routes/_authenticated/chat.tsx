@@ -33,9 +33,9 @@ export const Route = createFileRoute("/_authenticated/chat")({
   head: () => ({
     meta: [
       { title: "Private Chat | youandme" },
-      { name: "description", content: "A private, secure conversation shared between Manmadha and Likhitha." },
+      { name: "description", content: "A private, secure conversation shared between Manmadha and Eshaaa." },
       { property: "og:title", content: "Private Chat | youandme" },
-      { property: "og:description", content: "A private, secure conversation shared between Manmadha and Likhitha." },
+      { property: "og:description", content: "A private, secure conversation shared between Manmadha and Eshaaa." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -907,7 +907,7 @@ function ChatPage() {
             <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white/25 sm:h-3 sm:w-3 ${otherOnline ? "bg-emerald-400 shadow-[0_0_10px] shadow-emerald-400/80" : "bg-status-offline"}`} />
             <span className="min-w-0 leading-snug">
               <span className="font-bold text-white">
-                {otherProfile?.display_name ?? (meUsername === "manmadha" ? "Likhitha" : "Manmadha")}
+                {otherProfile?.display_name ?? (meUsername === "manmadha" ? "Eshaaa" : "Manmadha")}
               </span>
               <span className="text-white">
                 {" "}{otherOnline ? (otherTyping ? "is typing…" : "is online") : "is offline"}

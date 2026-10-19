@@ -10,12 +10,12 @@ export const Route = createFileRoute("/")({
       { title: "youandme — A Private Space for Two" },
       {
         name: "description",
-        content: "A private place for Manmadha and Likhitha to stay close and share every moment.",
+        content: "A private place for Manmadha and Eshaaa to stay close and share every moment.",
       },
       { property: "og:title", content: "youandme — A Private Space for Two" },
       {
         property: "og:description",
-        content: "A private place for Manmadha and Likhitha to stay close and share every moment.",
+        content: "A private place for Manmadha and Eshaaa to stay close and share every moment.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
