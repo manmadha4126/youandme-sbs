@@ -905,7 +905,7 @@ function ChatPage() {
           <ArrowLeft size={22} strokeWidth={2.5} />
         </button>
         <div className="min-w-0 flex-1">
-          <div className="truncate font-kameron text-base font-bold leading-tight sm:text-lg"><span className="text-white drop-shadow">You</span><span className="text-status-offline">And</span><span className="text-white drop-shadow">Me</span></div>
+          <div className="youandme-wordmark truncate font-kameron text-base font-bold leading-tight sm:text-lg"><span className="text-white">You</span><span className="text-status-offline">And</span><span className="text-white">Me</span></div>
           <div className="mt-1 flex items-start gap-2 text-xs font-medium leading-snug text-white sm:text-sm">
             <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white/25 sm:h-3 sm:w-3 ${otherOnline ? "bg-emerald-400 shadow-[0_0_10px] shadow-emerald-400/80" : "bg-status-offline"}`} />
             <span className="min-w-0 leading-snug">

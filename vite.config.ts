@@ -6,6 +6,14 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/tanstack/vite";
+import { normalize } from "node:path";
+
+const routesPlugin = mcpPlugin();
+const resolveRoutes = routesPlugin.configResolved;
+if (resolveRoutes) {
+  routesPlugin.configResolved = (config) =>
+    resolveRoutes({ ...config, root: normalize(config.root) });
+}
 
 export default defineConfig({
   tanstackStart: {
@@ -14,6 +22,6 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
-    plugins: [mcpPlugin()],
+    plugins: [routesPlugin],
   },
 });

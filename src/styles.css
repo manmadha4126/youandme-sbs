@@ -187,6 +187,7 @@
 
 .animate-heartbeat { animation: heartbeat 1.4s ease-in-out infinite; }
 .font-kameron { font-family: "Kameron", "Playfair Display", Georgia, serif; }
+.youandme-wordmark { text-shadow: 0 1px 0 rgb(0 0 0 / 24%), 0 2px 0 rgb(0 0 0 / 18%), 0 3px 0 rgb(0 0 0 / 12%), 0 4px 8px rgb(0 0 0 / 25%); }
 
 .animate-float-slow { animation: float-slow 12s ease-in-out infinite; }
 .animate-float-slower { animation: float-slower 16s ease-in-out infinite; }
