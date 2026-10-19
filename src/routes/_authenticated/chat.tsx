@@ -1,5 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback, lazy, Suspense } from "react";
+const LazyEmojiPicker = lazy(() => import("emoji-picker-react"));
+// "native" = the phone's own emoji font (same emojis WhatsApp shows on that device)
+const EmojiStyleNative = "native" as never;
 import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Phone, Video, MoreVertical } from "lucide-react";
@@ -1147,14 +1150,20 @@ function ChatPage() {
 
 
 
-      {/* Emoji row */}
+      {/* Emoji picker — full WhatsApp-style set with categories, search and skin tones */}
       {showEmojis && (
-        <div className="glass grid grid-cols-9 gap-1 border-t border-white/10 px-3 py-2 animate-fade-in">
-          {EMOJIS.map((e) => (
-            <button key={e} onClick={() => setText((t) => t + e)} className="text-xl hover:scale-125 transition-transform">
-              {e}
-            </button>
-          ))}
+        <div className="border-t border-white/10 animate-fade-in">
+          <Suspense fallback={<div className="h-[320px] bg-white/90" />}>
+            <LazyEmojiPicker
+              width="100%"
+              height={320}
+              lazyLoadEmojis
+              previewConfig={{ showPreview: false }}
+              emojiStyle={EmojiStyleNative}
+              searchPlaceholder="Search emoji"
+              onEmojiClick={(d: { emoji: string }) => setText((t) => t + d.emoji)}
+            />
+          </Suspense>
         </div>
       )}
 
